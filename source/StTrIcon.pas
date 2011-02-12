@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -408,11 +409,15 @@ begin
     Flags := Flags or NIF_TIP;
   FillChar(NotifyData, sizeof(NotifyData), 0);
   with NotifyData do begin
+    {$IF compilerversion >= 22}
+    cbSize := SizeOf;
+    {$ELSE}
     cbSize := SizeOf(NotifyData);
+    {$IFEND}
     Wnd    := Handle;
     uID    := 2;
     uFlags := Flags;
-    StrLCopy(szTip, PChar(FHint), SizeOf(szTip)-1);                     
+    StrLCopy(szTip, PChar(FHint), Length(szTip)-1);
     uCallBackMessage := TrayIconID;
     hIcon := IconHandle;
   end;
@@ -609,7 +614,7 @@ end;
 
 procedure TStCustomTrayIcon.ResetIcon;
 begin
-  if Active then                                                         
+  if Active then
     if not NotifyIcon(NIM_MODIFY) then
       RaiseStError(ESsTrayIconError, ssscTrayIconError);
 end;

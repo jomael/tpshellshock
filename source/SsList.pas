@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 

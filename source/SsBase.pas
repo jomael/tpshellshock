@@ -19,7 +19,7 @@
  * Portions created by the Initial Developer are Copyright (C) 1996-2002
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
+ * Contributor(s): Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -51,7 +51,7 @@ uses
   {$ENDIF}
 
   {$IFDEF VERSION6} {$WARN UNIT_PLATFORM OFF} {$ENDIF}
-  FileCtrl,
+  {$IFNDEF VERSION2010} FileCtrl, {$ENDIF}
   {$IFDEF VERSION6} {$WARN UNIT_PLATFORM ON} {$ENDIF}
   Dialogs;
 
@@ -484,11 +484,9 @@ type
     destructor Destroy;
       override;
 {$Z-}
-
-  published
-    { Published declarations }
   end;
 
+  {$M+}
   TSsVersionInfo = class(TSsCustomVersionInfo)
   public
     {properties}
@@ -506,6 +504,7 @@ type
     {properties}
     property FileName;
   end;
+  {$M-}
 
   TAssignRowData = record
     RowNum : Integer;
@@ -559,23 +558,27 @@ var
   procedure LoadILFunctions;
 
 {String routines}
-function LeftPadChS(const S : ShortString; C : AnsiChar; Len : Cardinal) : ShortString;
+function LeftPadChS(const S : string; C : Char; Len : Cardinal) : string;
 
-function LeftPadS(const S : ShortString; Len : Cardinal) : ShortString;
+function LeftPadS(const S : string; Len : Cardinal) : string;
 
+{$IFDEF UNICODE}
+function CharExistsS(const S : string; C : Char) : Boolean;
+function StrChPosS(const P : string; C : Char; var Pos : Cardinal) : Boolean;
+{$ELSE}
 function CharExistsS(const S : ShortString; C : AnsiChar) : Boolean;
-
 function StrChPosS(const P : ShortString; C : AnsiChar; var Pos : Cardinal) : Boolean;
+{$ENDIF}
 
-function Long2StrL(L : LongInt) : AnsiString;
+function Long2StrL(L : LongInt) : string;
 
-function TrimL(const S : AnsiString) : AnsiString;
+function TrimL(const S : string) : string;
 
-function AddBackSlashL(const DirName : AnsiString) : AnsiString;
+function AddBackSlashL(const DirName : string) : string;
 
-function CommaizeL(L : LongInt) : AnsiString;
+function CommaizeL(L : LongInt) : string;
 
-function CommaizeChL(L : Longint; Ch : AnsiChar) : AnsiString;
+function CommaizeChL(L : Longint; Ch : Char) : string;
 
 procedure EnumerateFiles(StartDir : string;
   FL : TStrings; SubDirs : Boolean; IncludeItem : TIncludeItemFunc);
@@ -905,25 +908,27 @@ begin
 end;
 
 { String routines }
-function LeftPadChS(const S : ShortString; C : AnsiChar; Len : Cardinal) : ShortString;
+function LeftPadChS(const S : string; C : Char; Len : Cardinal) : string;
   {-Pad a string on the left with a specified character.}
 begin
   if Length(S) >= Len then
     Result := S
-  else if Length(S) < 255 then begin
-    if Len > 255 then Len := 255;
-    Result[0] := Chr(Len);
-    Move(S[1], Result[Succ(Word(Len))-Length(S)], Length(S));
-    FillChar(Result[1], Len-Length(S), C);
-  end;
+  else
+    Result := StringOfChar(C, Len - Length(S)) + S;
 end;
 
-function LeftPadS(const S : ShortString; Len : Cardinal) : ShortString;
+function LeftPadS(const S : string; Len : Cardinal) : string;
   {-Pad a string on the left with spaces.}
 begin
   Result := LeftPadChS(S, ' ', Len);
 end;
 
+{$IFDEF UNICODE}
+function CharExistsS(const S : string; C : Char) : Boolean;
+begin
+  Result := Pos(C, S) > 0;
+end;
+{$ELSE}
 function CharExistsS(const S : ShortString; C : AnsiChar) : Boolean;
   {-Determine whether a given character exists in a string. }
 register;
@@ -981,7 +986,16 @@ asm
   xor   eax, eax
   mov   al, cl
 end;
+{$ENDIF}
 
+{$IFDEF UNICODE}
+function StrChPosS(const P : string; C : Char; var Pos : Cardinal) : Boolean;
+  {-Return the position of a specified character within a string.}
+begin
+  Pos := System.Pos(C, P);
+  Result := Pos > 0;
+end;
+{$ELSE}
 function StrChPosS(const P : ShortString; C : AnsiChar; var Pos : Cardinal) : Boolean;
   {-Return the position of a specified character within a string.}
 asm
@@ -1016,14 +1030,15 @@ asm
   pop   edi             { Restore registers }
   pop   ebx
 end;
+{$ENDIF}
 
-function Long2StrL(L : LongInt) : AnsiString;
+function Long2StrL(L : LongInt) : string;
   {-Convert an integer type to a string.}
 begin
   Str(L, Result);
 end;
 
-function TrimL(const S : AnsiString) : AnsiString;
+function TrimL(const S : string) : string;
   {-Return a string with leading and trailing white space removed.}
 var
   I : Longint;
@@ -1040,7 +1055,7 @@ begin
     System.Delete(Result, 1, I);
 end;
 
-function AddBackSlashL(const DirName : AnsiString) : AnsiString;
+function AddBackSlashL(const DirName : string) : string;
   {-Add a default backslash to a directory name}
 begin
   Result := DirName;
@@ -1051,7 +1066,7 @@ begin
     Result := Result + '\';
 end;
 
-function CommaizeChL(L : Longint; Ch : AnsiChar) : AnsiString;
+function CommaizeChL(L : Longint; Ch : Char) : string;
   {-Convert a long integer to a string with Ch in comma positions}
 var
   Temp : string;
@@ -1074,7 +1089,7 @@ begin
     System.Insert('-', Result, 1);
 end;
 
-function CommaizeL(L : LongInt) : AnsiString;
+function CommaizeL(L : LongInt) : string;
   {-Convert a long integer to a string with commas}
 begin
   Result := CommaizeChL(L, ',');
@@ -1112,7 +1127,7 @@ procedure EnumerateFiles(StartDir : string;
 
       if SubDirs then
       begin
-        Error := FindFirst('*.*', faAnyFile, SR);                      
+        Error := FindFirst('*.*', faAnyFile, SR);
         while Error = 0 do
         begin
           if ((SR.Attr and faDirectory = faDirectory) and
@@ -1149,14 +1164,14 @@ begin
 end;
 
 {!!.01 -- Rewritten}
-function IsDirectory(const DirName : AnsiString) : Boolean;
+function IsDirectory(const DirName : string) : Boolean;
 {-Return true if DirName is a directory}
 var
   Attrs : DWORD;
 begin
   Result := False;
-    Attrs := GetFileAttributes(PAnsiChar(DirName));
-  if Attrs <> DWORD(-1) then                                             
+    Attrs := GetFileAttributes(PChar(DirName));
+  if Attrs <> DWORD(-1) then
     Result := (FILE_ATTRIBUTE_DIRECTORY and Attrs <> 0);
 end;
 {!!.01 -- End Rewritten}
@@ -1289,7 +1304,7 @@ begin
     FError := GetLastError;
   if FError <> 0 then begin
     if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
-        nil, FError, 0, Buff, SizeOf(Buff), nil) <> 0) then
+        nil, FError, 0, Buff, Length(Buff), nil) <> 0) then
       FErrorString := Buff
     else
       FErrorString := '';
@@ -1347,14 +1362,14 @@ var
     { The file version string might be specified like }
     { 4.72.3105.0. Parse it down to just one decimal  }
     { place and create the floating point version #.  }
-    for I := 1 to Pred(Length(S)) do begin                             
+    for I := 1 to Pred(Length(S)) do begin
       if S[I] = '.' then begin
         { Found the first period. Replace it with the DecimalSeparator }
         { constant so that StrToFloat works properly. }
-        S[I] := DecimalSeparator;
+        S[I] := {$IFDEF VERSIONXE}FormatSettings.{$ENDIF}DecimalSeparator;
         Inc(Count);
-        if (Count = 2) and (I <= SizeOf(Buff)) then begin
-          Move(S[1], Buff, I - 1);
+        if (Count = 2) and (I <= Length(Buff)) then begin
+          Move(S[1], Buff, (I - 1) * SizeOf(Char));
           Break;
         end;
       end;
@@ -1512,7 +1527,7 @@ begin
   { If FileName is an emtpy string then load the }
   { version info for the current process.        }
   if (FFileName = '') then
-    if GetModuleFileName(0, Buff, SizeOf(Buff)) = 0 then
+    if GetModuleFileName(0, Buff, Length(Buff)) = 0 then
       FFileName := ''
     else
       FFileName := StrPas(Buff);

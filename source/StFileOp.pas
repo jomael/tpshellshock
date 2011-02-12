@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -154,7 +155,7 @@ var
   From         : PChar;
   FTo          : PChar;
   Res          : Integer;
-  FileCount    : Integer;                                              
+  FileCount    : Integer;
 
 (*
   procedure BuildFileMappingList;
@@ -245,11 +246,11 @@ var
         { If a particular line doesn't have a mapping then }
         { create one with Destination as the directory.    }
         S1 := FSourceFiles[I];
-        if S1 = '' then begin                                          
-          { Blank line, decrement the file count. }                    
-          Dec(FileCount);                                              
+        if S1 = '' then begin
+          { Blank line, decrement the file count. }
+          Dec(FileCount);
           Continue;
-        end;                                                           
+        end;
         if (Pos('=', S1) = 0) then begin
           S2 := FSourceFiles[I]
             + '=' + FDestination + '\' + ExtractFileName(S1);
@@ -312,11 +313,11 @@ begin
   try
     if Length(FSourceFiles.Text) > 2 then begin
       BuildFileMappingList;
-      if (FDestination = '') and (Op <> FO_DELETE)                     
+      if (FDestination = '') and (Op <> FO_DELETE)
           and not UsingMappings then
         RaiseStError(ESsFileOpError, ssscShellFileOpDstError);
       if not UsingMappings then begin
-        GetMem(FTo, Length(FDestination) + 2);
+        FTo := StrAlloc(Length(FDestination) + 2); //GetMem(FTo, Length(FDestination) + 2);
         FillChar(FTo^, Length(FDestination) + 2, 0);
         StrCopy(FTo, PChar(FDestination));
       end;
@@ -355,8 +356,8 @@ begin
       DoError;
     Result := (FError = 0);
   finally
-    FreeMem(From);
-    FreeMem(FTo);
+    StrDispose(From);
+    StrDispose(FTo);
   end;
 end;
 
@@ -393,7 +394,7 @@ begin
   { null. Fill the buffer with zeros and then copy the files  }
   { to the buffer one at a time. }
   I := Length(Source.Text) + Source.Count + 1;
-  GetMem(Dest, I);
+  Dest := StrAlloc(I); // GetMem(Dest, I);
   FillChar(Dest^, I, 0);
   if Source.Count = 1 then begin
     StrCopy(Dest, PChar(Source[0]));
@@ -437,7 +438,7 @@ begin
   FDestination := Value;
   Done := False;
   while not Done do begin
-    if (FDestination > '') and (FDestination[Length(FDestination)] = '\') then 
+    if (FDestination > '') and (FDestination[Length(FDestination)] = '\') then
       FDestination := Copy(FDestination, 1, Length(FDestination) - 1)
     else
       Done := True;

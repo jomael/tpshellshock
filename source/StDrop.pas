@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -228,7 +229,7 @@ begin
       if FCount > 0 then begin
         FFiles.Clear;
         for I := 0 to Pred(FCount) do begin
-          DragQueryFile(DropHandle, I, Buff, SizeOf(Buff));
+          DragQueryFile(DropHandle, I, Buff, Length(Buff));
           FFiles.Add(Buff);
         end;
         DragQueryPoint(DropHandle, Point);

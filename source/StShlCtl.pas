@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -1724,11 +1725,11 @@ var
   Count    : Cardinal;
   Eaten    : Cardinal;
   {$ENDIF}
-  WidePath : array [0..MAX_PATH - 1] of WideChar;
+  //WidePath : array [0..MAX_PATH - 1] of WideChar;
 begin
-  StringToWideChar(Path, WidePath, MAX_PATH);
+  //StringToWideChar(Path, WidePath, MAX_PATH);
   ParentFolder.ParseDisplayName(
-    0, nil, WidePath, Eaten, Pidl, Count);
+    0, nil, PWideChar(WideString(Path)), Eaten, Pidl, Count);
 end;
 
 procedure ShellMenuExecute(
@@ -1934,12 +1935,12 @@ begin
   OverlayIndex := 0;
   DosExeIndex := -1;
   if Win32Platform = VER_PLATFORM_WIN32_NT then begin
-    GetTempPath(SizeOf(TempDir), TempDir);
+    GetTempPath(Length(TempDir), TempDir);
     StrCopy(TempFile, TempDir);
     StrCat(TempFile, 'temp.lnk');
-    HFile := CreateFile(TempFile, GENERIC_WRITE, 0,                    
+    HFile := CreateFile(TempFile, GENERIC_WRITE, 0,
       nil, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, 0);
-    CloseHandle(HFile);                                                
+    CloseHandle(HFile);
     PidlFromPath(TempDir, DesktopFolder, ParentPidl);
     DesktopFolder.BindToObject(ParentPidl,
       nil, IID_IShellFolder, Pointer(Folder));
@@ -2013,7 +2014,7 @@ var
   EnumFlags     : DWORD;
   FI            : TSHFileInfo;
   AddItem       : Boolean;
-  P             : Integer;                                             
+  P             : Integer;
 begin
   EnumFlags := SHCONTF_FOLDERS;
   { Try to get a parent folder. }
@@ -2056,7 +2057,7 @@ begin
     BindToObject(ParentFolder, ChildPidl, CurrentFolder);
   CurrentFolder.EnumObjects(
     ParentHandle, EnumFlags, Enum);
-  ILFree(ChildPidl);                                                   
+  ILFree(ChildPidl);
 
   if EnumType = etList then begin
     SHGetFileInfo(PChar(PidlIn), 0, FI, SizeOf(FI),
@@ -2110,9 +2111,9 @@ begin
         SI.FOpenIconIndex, SI.FOverlayIconIndex, SI.FDisplayName);
       {$ENDIF}
       { Fix up display names for items on remote machines. }
-      P := Pos(ssscDisplayPreposition, SI.FDisplayName);                               
-      if (Pos('\\', SI.FPath) = 1) and (P <> 0) then                   
-        Delete(SI.FDisplayName, P, Length(SI.FDisplayName) - P + 1);   
+      P := Pos(ssscDisplayPreposition, SI.FDisplayName);
+      if (Pos('\\', SI.FPath) = 1) and (P <> 0) then
+        Delete(SI.FDisplayName, P, Length(SI.FDisplayName) - P + 1);
       if Assigned(FListView) and (EnumType = etList) then begin
         SI.ParentList := FListView.FullList.FList;
         AddItem := True;
@@ -2167,8 +2168,8 @@ begin
           end;
         end;
 
-        if ((toShowFiles in FTreeView.Options) and                     
-             ((Attr and SFGAO_FOLDER) <> 0)) or                        
+        if ((toShowFiles in FTreeView.Options) and
+             ((Attr and SFGAO_FOLDER) <> 0)) or
            ((Attr and SFGAO_HASSUBFOLDER) = SFGAO_HASSUBFOLDER) then begin
           { Create an enum object for the next level folder }
           { to see if there are any items in this folder.   }
@@ -2185,7 +2186,7 @@ begin
           end;
         end;
       end;
-      ILFree(Pidl1);                                                   
+      ILFree(Pidl1);
     end;
   end;
   Animate.Free;
@@ -2286,10 +2287,13 @@ begin
   { be able to handle all cases. }
   case StrRet.uType of
     STRRET_CSTR : Result := StrRet.cStr;
-    STRRET_WSTR : Result := WideCharToString(StrRet.pOleStr);
+    STRRET_WSTR : begin
+                    Result := WideCharToString(StrRet.pOleStr);
+                    CoTaskMemFree(StrRet.pOleStr); // SZ: pOleStr must be freed
+                  end;
     STRRET_OFFSET :
       begin
-        PBuff := PChar(Pidl) + StrRet.uOffset;
+        PBuff := PChar(PAnsiChar(Pidl) + StrRet.uOffset);
         Result := PBuff;
       end;
   end;
@@ -2343,7 +2347,7 @@ begin
         Result := Cmd;
         CI.cbSize := SizeOf(TCmInvokeCommandInfo);
         CI.hwnd := AHandle;
-        CI.lpVerb := MAKEINTRESOURCE(Cmd - 1);
+        CI.lpVerb := MAKEINTRESOURCEA(Cmd - 1); // todo: check ~~~
         CI.lpParameters := '';
         CI.lpDirectory := '';
         CI.nShow := SW_SHOWNORMAL;
@@ -2362,16 +2366,16 @@ function TStCustomShellController.RenameItem(
 var
   NewPidl  : PItemIDList;
   S        : string;
-  NewNameW : array [0..MAX_PATH - 1] of WideChar;
+  //NewNameW : array [0..MAX_PATH - 1] of WideChar;
 begin
   Result := False;
   if SI.CanRename then begin
     S := GetDisplayName(
       SI.ParentFolder, SI.SimplePidl, SHGDN_NORMAL);
     if S <> NewName then begin
-      StringToWideChar(NewName, NewNameW, MAX_PATH);
+      //StringToWideChar(NewName, NewNameW, MAX_PATH);
       Result := SI.ParentFolder.SetNameOf(Application.MainForm.Handle,
-        SI.SimplePidl, NewNameW, SHGDN_NORMAL, NewPidl) = NOERROR;
+        SI.SimplePidl, PWideChar(WideString(NewName)), SHGDN_NORMAL, NewPidl) = NOERROR;
       if NewPidl <> nil then begin
         { Rename was succesful so copy the new pidl. }
         SI.FSimplePidl := ILClone(NewPidl);
@@ -2449,7 +2453,7 @@ var
   Attr          : Cardinal;
   Count         : Cardinal;
   {$ENDIF}
-  P             : Integer;                                             
+  P             : Integer;
 begin
   if (FSpecialRootFolder = sfNone) and (FRootFolder = '')
       and (FRootPidl = nil) then
@@ -2480,10 +2484,10 @@ begin
       FFolder.FDisplayName :=
         GetDisplayName(DesktopFolder, FRootPidl, SHGDN_NORMAL);
       { Fix up display names for items on remote machines. }
-      P := Pos(ssscDisplayPreposition, FFolder.FDisplayName);                          
+      P := Pos(ssscDisplayPreposition, FFolder.FDisplayName);
       if P <> 0 then
-        Delete(FFolder.FDisplayName,                                   
-          P, Length(FFolder.FDisplayName) - P + 1);                    
+        Delete(FFolder.FDisplayName,
+          P, Length(FFolder.FDisplayName) - P + 1);
       GetParentFolder(FRootPidl, FFolder.FParentFolder);
       Attr2 := SFGAO_FILESYSTEM or SFGAO_FOLDER;
       FFolder.ParentFolder.GetAttributesOf(1, FFolder.FSimplePidl, Attr2);
@@ -2531,7 +2535,7 @@ begin
         ShellItems.FList.Add(SI)
       else
         SI.Free;
-      ILFree(Pidl1);                                                   
+      ILFree(Pidl1);
   end;
   Enum := nil;
   if Sorted and (ShellItems.Count <> 0) then begin
@@ -2598,8 +2602,8 @@ procedure TStShellEnumerator.SetSortDirection(const Value : TStSortDirection);
 begin
   { Added sdToggle to TStSortDirection for use in the list view. }
   { That value is not valid for this property. }
-  if Value = sdToggle then                                             
-    RaiseStError(ESsInvalidSortDir, ssscInvalidSortDir);               
+  if Value = sdToggle then
+    RaiseStError(ESsInvalidSortDir, ssscInvalidSortDir);
   if Sorted and (ShellItems.Count <> 0) and (FSortDirection <> Value) then begin
     if Value = sdAscending then
       ShellItems.FList.Sort(ItemPidlSortFunc)
@@ -2618,11 +2622,11 @@ begin
   { Item index of -1 means that we don't yet have all of the file info. }
   FIconIndex := -1;
   FSize := -1;
-  if AController = nil then begin                                      
+  if AController = nil then begin
     FController := TStCustomShellController.Create(nil);
-    OwnController := True;                                             
-  end else                                                             
-    FController := AController;                                        
+    OwnController := True;
+  end else
+    FController := AController;
 end;
 
 constructor TStShellItem.CreateFromPidl(Pidl : PItemIDList;
@@ -2634,7 +2638,7 @@ var
   Attr       : Cardinal;
   {$ENDIF}
   TempPidl   : PItemIDList;
-  P          : Integer;                                                
+  P          : Integer;
 begin
   inherited Create;
   FColText := TStringList.Create;
@@ -2648,28 +2652,28 @@ begin
   GetParentFolder(FPidl, FParentFolder);
   if FParentFolder = nil then
     SHGetDesktopFolder(FParentFolder);
-  if AController = nil then begin                                      
-    FController := TStCustomShellController.Create(nil);               
-    OwnController := True;                                             
-  end else                                                             
-    FController := AController;                                        
+  if AController = nil then begin
+    FController := TStCustomShellController.Create(nil);
+    OwnController := True;
+  end else
+    FController := AController;
   FPath := FController.GetDisplayName(
     ParentFolder, FSimplePidl, SHGDN_FORPARSING);
   FDisplayName := FController.GetDisplayName(
     ParentFolder, FSimplePidl, SHGDN_NORMAL);
-  { Defer getting the item info until actually needed. }               
-  { Controller.GetItemInfo(FPidl, FIconIndex, FOpenIconIndex, }        
-  {   FOverlayIconIndex, FDisplayName); }                              
+  { Defer getting the item info until actually needed. }
+  { Controller.GetItemInfo(FPidl, FIconIndex, FOpenIconIndex, }
+  {   FOverlayIconIndex, FDisplayName); }
   { Fix up display names for items on remote machines. }
-  P := Pos(ssscDisplayPreposition, FDisplayName);                                      
-  if (Pos('\\', FPath) = 1) and (P <> 0) then                          
-    Delete(FDisplayName, P, Length(FDisplayName) - P + 1);             
+  P := Pos(ssscDisplayPreposition, FDisplayName);
+  if (Pos('\\', FPath) = 1) and (P <> 0) then
+    Delete(FDisplayName, P, Length(FDisplayName) - P + 1);
   Attr := SFGAO_FILESYSTEM or SFGAO_FOLDER;
   ParentFolder.GetAttributesOf(1, FSimplePidl, Attr);
   FIsFileSystem := (Attr and SFGAO_FILESYSTEM) = SFGAO_FILESYSTEM;
   FIsFileFolder := FIsFileSystem and
     ((Attr and SFGAO_FOLDER) = SFGAO_FOLDER);
-  FIsFile := (FIsFileSystem and not FIsFileFolder);                    
+  FIsFile := (FIsFileSystem and not FIsFileFolder);
   SHGetSpecialFolderLocation(
     Application.Handle, CSIDL_DESKTOP, TempPidl);
   if ILIsEqual(Pidl, TempPidl) then
@@ -2686,15 +2690,15 @@ var
   {$ENDIF}
   Pidl       : PItemIDList;
   TempPidl   : PItemIDList;
-  P          : Integer;                                                
-  DesktopFolder : IShellFolder;                                        
+  P          : Integer;
+  DesktopFolder : IShellFolder;
 begin
   inherited Create;
   FColText := TStringList.Create;
   { Item index of -1 means that we don't yet have all of the file info. }
   FIconIndex := -1;
   FSize := -1;
-  SHGetDesktopFolder(DesktopFolder);                                   
+  SHGetDesktopFolder(DesktopFolder);
   PidlFromPath(Path, DesktopFolder, Pidl);
   if Pidl = nil then
     RaiseStError(ESsInvalidFolder, ssscInvalidFolder);
@@ -2703,27 +2707,27 @@ begin
   GetParentFolder(FPidl, FParentFolder);
   if FParentFolder = nil then
     SHGetDesktopFolder(FParentFolder);
-  if AController = nil then begin                                      
-    FController := TStCustomShellController.Create(nil);               
-    OwnController := True;                                             
-  end else                                                             
-    FController := AController;                                        
+  if AController = nil then begin
+    FController := TStCustomShellController.Create(nil);
+    OwnController := True;
+  end else
+    FController := AController;
   FDisplayName := FController.GetDisplayName(
     ParentFolder, FSimplePidl, SHGDN_NORMAL);
   FPath := FController.GetDisplayName(
     ParentFolder, FSimplePidl, SHGDN_FORPARSING);
-  { Defer getting the item info until actually needed. }               
-  { Controller.GetItemInfo(FPidl, FIconIndex, FOpenIconIndex, }        
-  {   FOverlayIconIndex, FDisplayName); }                              
-  P := Pos(ssscDisplayPreposition, FDisplayName);                                      
-  if (Pos('\\', FPath) = 1) and (P <> 0) then                          
-    Delete(FDisplayName, P, Length(FDisplayName) - P + 1);             
+  { Defer getting the item info until actually needed. }
+  { Controller.GetItemInfo(FPidl, FIconIndex, FOpenIconIndex, }
+  {   FOverlayIconIndex, FDisplayName); }
+  P := Pos(ssscDisplayPreposition, FDisplayName);
+  if (Pos('\\', FPath) = 1) and (P <> 0) then
+    Delete(FDisplayName, P, Length(FDisplayName) - P + 1);
   Attr := SFGAO_FILESYSTEM or SFGAO_FOLDER;
   ParentFolder.GetAttributesOf(1, FSimplePidl, Attr);
   FIsFileSystem := (Attr and SFGAO_FILESYSTEM) = SFGAO_FILESYSTEM;
   FIsFileFolder := FIsFileSystem and
     ((Attr and SFGAO_FOLDER) = SFGAO_FOLDER);
-  FIsFile := (FIsFileSystem and not FIsFileFolder);                    
+  FIsFile := (FIsFileSystem and not FIsFileFolder);
   SHGetSpecialFolderLocation(
     Application.Handle, CSIDL_DESKTOP, TempPidl);
   if ILIsEqual(Pidl, TempPidl) then
@@ -2744,8 +2748,8 @@ begin
     FLargeIcon.Free;
   if Assigned(FOpenIcon) then
     FOpenIcon.Free;
-  if OwnController then                                                
-    FController.Free;                                                  
+  if OwnController then
+    FController.Free;
   inherited;
 end;
 
@@ -2771,7 +2775,7 @@ begin
   ParentList        := AValue.ParentList;
   FColText.Assign(AValue.FColText);
   GetParentFolder(FPidl, FParentFolder);
-  FController       := AValue.FController;                             
+  FController       := AValue.FController;
   { Don't bother with the icon properties as a new icon }
   { will be created when requested. }
 end;
@@ -2809,7 +2813,7 @@ begin
       FSimplePidl, 1, Application.Handle, caPaste);
 end;
 
-procedure TStShellItem.GetItemDetails;                                 
+procedure TStShellItem.GetItemDetails;
 var
   S    : string;
   Res  : DWORD;
@@ -2843,9 +2847,9 @@ begin
         FDate := EncodeDate(ST.wYear, ST.wMonth, ST.wDay) +
           EncodeTime(ST.wHour, ST.wMinute, ST.wSecond, 0);
       end;
-      S := LongTimeFormat;
+      {S := LongTimeFormat; //SZ - 09.09.2010 what is this good for?
       LongTimeFormat := ShortTimeFormat;
-      LongTimeFormat := S;
+      LongTimeFormat := S; }
       { Attributes }
       S := '';
       FFileAttributes := FD.dwFileAttributes;
@@ -2866,7 +2870,11 @@ begin
       FSize := SR.Size;
       { Modified }
       DOSDate := SR.Time;
+      {$IFDEF VERSIONXE}
+      FDate := SR.TimeStamp;
+      {$ELSE}
       FDate := FileDateToDateTime(SR.Time);
+      {$ENDIF}
       { Attributes }
       S := '';
       {$IFDEF VERSION6} {$WARN SYMBOL_PLATFORM OFF} {$ENDIF}
@@ -2889,7 +2897,7 @@ begin
   end;
 end;
 
-function TStShellItem.GetFolderSize(                                   
+function TStShellItem.GetFolderSize(
   Recursive : Boolean; IncludeHidden : Boolean) : Cardinal;
 var
   Enum : TStShellEnumerator;
@@ -2971,21 +2979,21 @@ begin
   end;
 end;
 
-function TStShellItem.GetDate : TDateTime;                             
+function TStShellItem.GetDate : TDateTime;
 begin
   if FSize = -1 then
     GetItemDetails;
   Result := FDate;
 end;
 
-function TStShellItem.GetFileAttributes : DWORD;                       
+function TStShellItem.GetFileAttributes : DWORD;
 begin
   if FSize = -1 then
     GetItemDetails;
   Result := FFileAttributes;
 end;
 
-function TStShellItem.GetFileAttributesStr : string;                   
+function TStShellItem.GetFileAttributesStr : string;
 begin
   if FSize = -1 then
     GetItemDetails;
@@ -3028,7 +3036,7 @@ begin
     Result := False;
 end;
 
-function TStShellItem.GetIconIndex : Integer;                          
+function TStShellItem.GetIconIndex : Integer;
 var
   S : string;
 begin
@@ -3146,7 +3154,7 @@ begin
     Result := False;
 end;
 
-function TStShellItem.GetOpenIconIndex : Integer;                      
+function TStShellItem.GetOpenIconIndex : Integer;
 var
   S : string;
 begin
@@ -3156,7 +3164,7 @@ begin
   Result := FOpenIconIndex;
 end;
 
-function TStShellItem.GetOverlayIconIndex : Integer;                   
+function TStShellItem.GetOverlayIconIndex : Integer;
 var
   S : string;
 begin
@@ -3166,7 +3174,7 @@ begin
   Result := FOverlayIconIndex;
 end;
 
-function TStShellItem.GetSize : Integer;                               
+function TStShellItem.GetSize : Integer;
 begin
   if FSize = -1 then
     GetItemDetails;
@@ -3423,7 +3431,7 @@ begin
   FRootFolder        := '';
   FSpecialRootFolder := sfDesktop;
   FCompressedColor   := clBlue;
-  FExpandInterval    := 2000;                                          
+  FExpandInterval    := 2000;
   FFolders           := TStShellFolderList.Create;
   FMaxNotifications  := 5;
 
@@ -3432,10 +3440,10 @@ begin
   Height             := 270;
   RightClickSelect   := True;
   ShowRoot           := False;
-  RecreatingWnd      := False;                                         
+  RecreatingWnd      := False;
 
-  FSpecialStartInFolder := sfNone;                                     
-  FStartInFolder        := '';                                         
+  FSpecialStartInFolder := sfNone;
+  FStartInFolder        := '';
 
   { Get the version of Shell32.dll. Some special folders }
   { require Version 4.71 or higher. }
@@ -3588,8 +3596,8 @@ procedure TStCustomShellTreeView.Edit(const Item : TTVItem);
 var
   SI       : TStShellFolder;
   NewPidl  : PItemIDList;
-  NewName  : array [0..MAX_PATH - 1] of WideChar;
-  Node     : TTreeNode;                                                
+ // NewName  : array [0..MAX_PATH - 1] of WideChar;
+  Node     : TTreeNode;
 begin
   inherited Edit(Item);
   SI := Folders[Integer(Selected.Data)];
@@ -3600,12 +3608,12 @@ begin
     Screen.Cursor := crHourglass;
     try
       if SI.DisplayName <> Selected.Text then begin
-        StringToWideChar(Selected.Text, NewName, MAX_PATH);
+        //StringToWideChar(Selected.Text, NewName, MAX_PATH);
         SI.ParentFolder.SetNameOf(
-          Handle, SI.SimplePidl, NewName, SHGDN_NORMAL, NewPidl);
-        Node := Selected;                                              
-        Refresh(Selected.Parent);                                      
-        Selected := Node;                                              
+          Handle, SI.SimplePidl, PWideChar(WideString(Selected.Text)), SHGDN_NORMAL, NewPidl);
+        Node := Selected;
+        Refresh(Selected.Parent);
+        Selected := Node;
         ILFree(NewPidl);
       end;
     finally
@@ -3700,14 +3708,14 @@ begin
   if not (csLoading in ComponentState) and (FRootFolder <> '') then begin
     { Can't have a SpecialRootFolder if RootFolder is assigned. }
     SpecialRootFolder := sfNone;
-    if (FSpecialStartInFolder <> sfNone) or (FStartInFolder <> '') then 
-      StartFolderSet := False;                                          
+    if (FSpecialStartInFolder <> sfNone) or (FStartInFolder <> '') then
+      StartFolderSet := False;
     ClearTree;
     FillTree;
   end;
 end;
 
-procedure TStCustomShellTreeView.SetStartInFolder(const Value : string); 
+procedure TStCustomShellTreeView.SetStartInFolder(const Value : string);
 begin
   FStartInFolder := Value;
   { Add trailing backslash if the root folder is a drive. }
@@ -3748,7 +3756,7 @@ begin
   case NMHdr.code of
     TVN_BEGINDRAG :
       if (toAllowDrag in FOptions) then begin
-        Controller.DragSource := Self;                                 
+        Controller.DragSource := Self;
         NMTree := PNMTreeView(Pointer(Message.NMHdr))^;
         Node := GetNodeAt(NMTree.ptDrag.X, NMTree.ptDrag.Y);
         SI := Folders[Integer(Node.Data)];
@@ -3779,8 +3787,8 @@ procedure TStCustomShellTreeView.WndProc(var Message : TMessage);
 var
   Res  : Integer;
   SI   : TStShellItem;
-  Pidl : PItemIDList;                                                  
-  Node : TTreeNode;                                                    
+  Pidl : PItemIDList;
+  Node : TTreeNode;
 begin
   with Message do begin
     if (Msg = WM_CONTEXTMENU) and (toShellMenu in FOptions) then begin
@@ -3788,7 +3796,7 @@ begin
       Res := Controller.ExecutePopup(Self, SI.ParentFolder,
         SI.FSimplePidl, 1, LoWord(lParam), HiWord(lParam), Handle);
       { "Rename" item on context menu has ID of 19. }
-      if Res = 19 then                                                 
+      if Res = 19 then
         Selected.EditText;
       Exit;
     end;
@@ -3796,41 +3804,41 @@ begin
       Result := 0;
       Exit;
     end;
-    if (Msg = WM_TIMER) and (WParam = 55) then begin                   
-      if DropTargetNode <> nil then                                    
+    if (Msg = WM_TIMER) and (WParam = 55) then begin
+      if DropTargetNode <> nil then
         if DropTargetNode.HasChildren and
-            not DropTargetNode.Expanded then begin                     
-          DropTargetNode.Expand(False);                                
-          ImageList_DragShowNoLock(False);                             
-          Repaint;                                                     
-          ImageList_DragShowNoLock(True);                              
-        end;                                                           
-      KillTimer(Handle, 55);                                           
+            not DropTargetNode.Expanded then begin
+          DropTargetNode.Expand(False);
+          ImageList_DragShowNoLock(False);
+          Repaint;
+          ImageList_DragShowNoLock(True);
+        end;
+      KillTimer(Handle, 55);
     end;
     if (Msg = WM_PAINT) and (not StartFolderSet)
-        and (not (csDesigning in ComponentState)) then begin           
-      { Select the StartIn node. }                                     
-      StartFolderSet := True;                                          
-      Pidl := nil;                                                     
-      if FStartInFolder <> '' then                                     
-        PidlFromPath(FStartInFolder, Controller.DesktopFolder, Pidl)   
-      else if FSpecialStartInFolder <> sfNone then                                                             
-        SHGetSpecialFolderLocation(Handle,                             
-          ShellFolders[FSpecialStartInFolder], Pidl);                  
+        and (not (csDesigning in ComponentState)) then begin
+      { Select the StartIn node. }
+      StartFolderSet := True;
+      Pidl := nil;
+      if FStartInFolder <> '' then
+        PidlFromPath(FStartInFolder, Controller.DesktopFolder, Pidl)
+      else if FSpecialStartInFolder <> sfNone then
+        SHGetSpecialFolderLocation(Handle,
+          ShellFolders[FSpecialStartInFolder], Pidl);
       if Pidl = nil then begin
         if Assigned(FListView) then
           if FListView.Items.Count = 0 then
             FListView.FillList(Folders[0]);
-            Exit;                                                      
+            Exit;
       end;
-      Node := FindNodeByPidl(Pidl);                                    
-      if Node <> nil then begin                                        
-        Selected := Node;                                              
+      Node := FindNodeByPidl(Pidl);
+      if Node <> nil then begin
+        Selected := Node;
         Change(Node);
-        Node.MakeVisible;                                              
-      end else                                                         
-        Change(Items[0]);                                              
-    end;                                                               
+        Node.MakeVisible;
+      end else
+        Change(Items[0]);
+    end;
   end;
   inherited;
 end;
@@ -3863,7 +3871,7 @@ end;
 function TStCustomShellTreeView.DragLeave : HResult;
 begin
   if FExpandInterval <> 0 then
-    KillTimer(Handle, 55);                                             
+    KillTimer(Handle, 55);
   if (DataObject <> nil) then
     DataObject := nil;
   Result := NOERROR;
@@ -3959,10 +3967,10 @@ begin
         InvalidateRect(Handle, @NewRect, False);
         UpdateWindow(Handle);
         ImageList_DragShowNoLock(True);
-        if FExpandInterval <> 0 then begin                             
-          KillTimer(Handle, 55);                                       
-          SetTimer(Handle, 55, FExpandInterval, nil);                  
-        end;                                                           
+        if FExpandInterval <> 0 then begin
+          KillTimer(Handle, 55);
+          SetTimer(Handle, 55, FExpandInterval, nil);
+        end;
         Exit;
       end;
     end else
@@ -3979,8 +3987,8 @@ var
   DropTarget : IDropTarget;
   SI         : TStShellItem;
 begin
-  if FExpandInterval <> 0 then                                         
-    KillTimer(Handle, 55);                                             
+  if FExpandInterval <> 0 then
+    KillTimer(Handle, 55);
   Result := S_OK;
   if (DataObject = nil) then begin
     Result := E_FAIL;
@@ -4039,15 +4047,15 @@ begin
     if (FSpecialRootFolder <> sfNone) and not (csLoading in ComponentState) then begin
       { Can't have a RootFolder if SpecialRootFolder is assigned. }
       RootFolder := '';
-      if (FSpecialStartInFolder <> sfNone) or (FStartInFolder <> '') then 
-        StartFolderSet := False;                                       
+      if (FSpecialStartInFolder <> sfNone) or (FStartInFolder <> '') then
+        StartFolderSet := False;
       ClearTree;
       FillTree;
     end;
   end;
 end;
 
-procedure TStCustomShellTreeView.SetSpecialStartInFolder(              
+procedure TStCustomShellTreeView.SetSpecialStartInFolder(
   const Value : TStSpecialRootFolder);
 begin
   if ((ShellFolders[Value] = CSIDL_INTERNET) or
@@ -4140,7 +4148,10 @@ begin
     Exit;
   if not (csDesigning in ComponentState) then begin
     if (toColorCompressed in FOptions) then
-      if not (cdsSelected in State) then begin
+      if not (cdsSelected in State) then
+      begin
+        if Folders.Count = 0 then //SZ
+          Exit; //SZ
         SI := Folders[Integer(Node.Data)];
         if SI <> nil then begin
           { Reading the IsCompressed property on Windows 2000 will }
@@ -4173,7 +4184,7 @@ begin
     FOnShellChangeNotify(Self, SI1, SI2, Events);
 end;
 
-procedure TStCustomShellTreeView.FindAndSelectNode(APidl : PItemIDList); 
+procedure TStCustomShellTreeView.FindAndSelectNode(APidl : PItemIDList);
 var
   I     : Integer;
   Node  : TTreeNode;
@@ -4211,18 +4222,18 @@ begin
       ILFree(Pidl);
     end;
   List.Free;
-  if Node <> nil then                                                  
+  if Node <> nil then
     Node.MakeVisible
   else begin
-    SendMessage(Handle, WM_SETREDRAW, 1, 0);                           
-    RaiseStError(ESsInvalidFolder, ssscInvalidFolder);                 
-  end;                                                                 
+    SendMessage(Handle, WM_SETREDRAW, 1, 0);
+    RaiseStError(ESsInvalidFolder, ssscInvalidFolder);
+  end;
   SendMessage(Handle, WM_SETREDRAW, 1, 0);
   Selected := Node;
-  FSelectedFolder := Folders[Integer(Node.Data)];                      
+  FSelectedFolder := Folders[Integer(Node.Data)];
 end;
 
-procedure TStCustomShellTreeView.SelectFolder(Path : string);          
+procedure TStCustomShellTreeView.SelectFolder(Path : string);
 var
   Pidl  : PItemIDList;
 begin
@@ -4231,11 +4242,11 @@ begin
     RaiseStError(ESsInvalidFolder, ssscInvalidFolder);
   FindAndSelectNode(Pidl);
   ILFree(Pidl);
-  FStartInFolder := Path;                                              
+  FStartInFolder := Path;
 
 end;
 
-procedure TStCustomShellTreeView.SelectSpecialFolder(                  
+procedure TStCustomShellTreeView.SelectSpecialFolder(
   Folder : TStSpecialRootFolder);
 var
   Pidl  : PItemIDList;
@@ -4283,7 +4294,7 @@ begin
     SF := TStShellFolder.Create(Controller);
     SF.Assign(TStShellFolder(SI));
     if SF.FParentFolder = nil then
-      SF.FParentFolder := Controller.DesktopFolder;                    
+      SF.FParentFolder := Controller.DesktopFolder;
     NewNode := Items.AddChild(Node, SF.DisplayName);
     SF.ParentList := Folders.FList;
     NewNode.Data := Pointer(Folders.FList.Add(SF));
@@ -4353,8 +4364,8 @@ begin
     InternalEvent := False;
     Exit;
   end;
-  if SI1 = nil then                                                    
-    Exit;                                                              
+  if SI1 = nil then
+    Exit;
   { Something happened in the shell. See if it's something we   }
   { need to handle. We could get this event twice. If we do, we }
   { don't add to the tree view twice. }
@@ -4369,8 +4380,8 @@ begin
       if Node.Count <> 0 then begin
         SF := TStShellFolder.Create(Controller);
         SF.Assign(TStShellFolder(SI1));
-        if SF.FParentFolder = nil then                                 
-          SF.FParentFolder := Controller.DesktopFolder;                
+        if SF.FParentFolder = nil then
+          SF.FParentFolder := Controller.DesktopFolder;
         SF.ParentList := Folders.FList;
         { It could be that a network drive is in the list but was }
         { not connected and has been reconnected. If that is the  }
@@ -4412,7 +4423,7 @@ begin
     SHGetSpecialFolderLocation(
       Application.Handle, CSIDL_DESKTOP, Pidl);
 
-    if SI2 <> nil then begin                                           
+    if SI2 <> nil then begin
       if ILIsEqual(Pidl, SI2.Pidl) then begin
         { It's the recycle bin so delete from the tree view. }
         Node := FindNodeByPidl(SI1.Pidl);
@@ -4425,10 +4436,10 @@ begin
       end else
         { See if it's one we have in the list. }
         for I := 0 to Pred(Folders.Count) do begin
-          if UpperCase(Folders[I].Path) = UpperCase(SI1.Path) then begin
+          if AnsiUpperCase(Folders[I].Path) = AnsiUpperCase(SI1.Path) then begin
             Folders[I].Assign(TStShellFolder(SI2));
-            if Folders[I].FParentFolder = nil then                     
-              Folders[I].FParentFolder := Controller.DesktopFolder;    
+            if Folders[I].FParentFolder = nil then
+              Folders[I].FParentFolder := Controller.DesktopFolder;
             Node := FindNodeByPidl(SI2.FPidl);
             if Node <> nil then begin
               Node.Text := SI2.DisplayName;
@@ -4437,7 +4448,7 @@ begin
             Break;
           end;
         end;
-    end;                                                               
+    end;
   end;
   if (neNetShare in Events) or (neNetUnShare in Events) then begin
     Node := FindNodeByPidl(SI1.Pidl);
@@ -4572,15 +4583,15 @@ procedure TStCustomShellTreeView.SetListView(
   const Value : TStCustomShellListView);
 begin
   FListView := Value;
-  if Value = nil then                                                  
-    Exit;                                                              
+  if Value = nil then
+    Exit;
   if (csDesigning in ComponentState) then
     FListView.TreeView := Self;
   if (Controller = nil) and (FListView.Controller <> nil) then
     Controller := FListView.Controller;
 end;
 
-procedure TStCustomShellTreeView.SetMaxNotifications(const Value : Integer); 
+procedure TStCustomShellTreeView.SetMaxNotifications(const Value : Integer);
 begin
   if ShellMonitor <> nil then
     ShellMonitor.MaxNotifications := FMaxNotifications;
@@ -4598,8 +4609,8 @@ var
   Index : Integer;
   I     : Integer;
 begin
-  if SelectedFolder.IsReadOnly then                                    
-    RaiseStError(ESsInvalidFolder, ssscFolderReadOnly);                
+  if SelectedFolder.IsReadOnly then
+    RaiseStError(ESsInvalidFolder, ssscFolderReadOnly);
   if FolderName = '' then
     FolderName := ssscDefaultFolderName;
   { If the folder name already exists in this folder, give it a new name. }
@@ -4612,7 +4623,7 @@ begin
   while not Done do begin
     Index := -1;
     for I := 0 to Pred(Enum.ShellItems.Count) do
-      if UpperCase(S) = UpperCase(Enum.ShellItems[I].DisplayName) then begin
+      if AnsiUpperCase(S) = AnsiUpperCase(Enum.ShellItems[I].DisplayName) then begin
         S := FolderName + ' (' + IntToStr(Count) + ')';
         Inc(Count);
         Index := I;
@@ -4680,9 +4691,9 @@ var
   I             : Integer;
   SF            : TStShellFolder;
 begin
-  if ANode = nil then                                                  
-    ANode := Items[0];                                                 
-  {if ANode <> nil then begin}                                         
+  if ANode = nil then
+    ANode := Items[0];
+  {if ANode <> nil then begin}
   ExpandedNodes := TList.Create;
   Node := ANode;
   { Enumerate the selected node's children, saving any }
@@ -4693,8 +4704,8 @@ begin
       if Node.Expanded then begin
         SF := TStShellFolder.Create(Controller);
         SF.Assign(Folders[Integer(Node.Data)]);
-        if SF.FParentFolder = nil then                                 
-          SF.FParentFolder := Controller.DesktopFolder;                
+        if SF.FParentFolder = nil then
+          SF.FParentFolder := Controller.DesktopFolder;
         { Free the memory for the old folder item, but }
         { don't remove it from the list or the indexes }
         { of the remaining items will be off. }
@@ -4781,7 +4792,7 @@ begin
   FFiltered        := False;
   FFileFilter      := '';
   FRootFolder      := '';
-  FMaxNotifications := 5;                                              
+  FMaxNotifications := 5;
   FOpenDialogMode  := False;
   FSpecialRootFolder := sfNone;
   { Base class property defaults }
@@ -4794,11 +4805,11 @@ begin
   {$ENDIF}
   FilteredList := TStShellItemList.Create;
   FullList     := TStShellItemList.Create;
-  FSelectedItems := TStShellItemList.Create;                           
+  FSelectedItems := TStShellItemList.Create;
 
   ClickedColumn := 0;
   Ascending     := True;
-  RecreatingWnd := False;                                              
+  RecreatingWnd := False;
 
   {$IFDEF VERSION4}
   OnCustomDrawItem := DoCustomDrawItem;
@@ -4875,7 +4886,7 @@ begin
           if Reg.OpenKey(S1, False) then begin
             S2 := Reg.ReadString('');
             if S2 <> '' then begin
-              GetMem(Str, Length(S2) + 1);
+              GetMem(Str, (Length(S2) + 1) * SizeOf(Char));
               StrPCopy(Str, S2);
               TypeNames.Add(RegKeys[I], Str);
             end;
@@ -5019,7 +5030,7 @@ procedure TStCustomShellListView.Edit(const Item : TLVItem);
 var
   SI      : TStShellItem;
   NewPidl : PItemIDList;
-  NewName : array [0..MAX_PATH - 1] of WideChar;
+  //NewName : array [0..MAX_PATH - 1] of WideChar;
 begin
   inherited Edit(Item);
   SI := ShellItems[Integer(Selected.Data)];
@@ -5029,9 +5040,9 @@ begin
   if SI.CanRename then begin
     Screen.Cursor := crHourglass;
     try
-      StringToWideChar(Item.pszText, NewName, MAX_PATH);
+      //StringToWideChar(Item.pszText, NewName, MAX_PATH);
       SI.ParentFolder.SetNameOf(
-        Handle, SI.FSimplePidl, NewName, SHGDN_NORMAL, NewPidl);
+        Handle, SI.FSimplePidl, PWideChar(WideString(Item.pszText)), SHGDN_NORMAL, NewPidl);
       if NewPidl <> nil then begin
         { Rename was succesful so copy the new pidl. }
         SI.FSimplePidl := ILClone(NewPidl);
@@ -5209,7 +5220,7 @@ begin
     DoItemDblClick(SI, DefaultAction);
     if DefaultAction then begin
       if SI.IsFileSystem and not SI.IsFileFolder then
-        ShellExecute(Handle, 'Open', PChar(SI.Path), '', '', SW_NORMAL)
+        ShellExecute(Handle, nil, PChar(SI.Path), '', '', SW_NORMAL) //SZ replaced 'open' with nil so that the default verb will be executed
       else if not SI.IsFolder then
         SI.Execute
       else if (loOpenFoldersInNewWindow in FOptions) then
@@ -5307,7 +5318,7 @@ begin
       STRRET_WSTR : ColText := WideCharToString(SD.str.pOleStr);
       STRRET_OFFSET :
         begin
-          PBuff := PChar(Pidl) + SD.str.uOffset;
+          PBuff := PChar(PAnsiChar(Pidl) + SD.str.uOffset);
           ColText := PBuff;
         end;
     end;
@@ -5366,7 +5377,7 @@ var
         STRRET_WSTR : ColText := WideCharToString(SD.str.pOleStr);
         STRRET_OFFSET :
           begin
-            PBuff := PChar(SI.FSimplePidl) + SD.str.uOffset;
+            PBuff := PChar(PAnsiChar(SI.FSimplePidl) + SD.str.uOffset);
             ColText := PBuff;
           end;
       end;
@@ -5378,7 +5389,7 @@ var
         if S = '' then
           ColText := stFile
         else if ColText = '' then
-          ColText := UpperCase(Copy(S, 2, Length(S) - 1)) + ' ' + stFile;
+          ColText := AnsiUpperCase(Copy(S, 2, Length(S) - 1)) + ' ' + stFile;
       end;
       SI.ColText.Add(ColText);
       { It's a file system object so get the details. }
@@ -5432,7 +5443,7 @@ begin
           if S = '' then
             ColText := stFile
           else if ColText = '' then
-            ColText := UpperCase(Copy(S, 2, Length(S) - 1)) + ' ' + stFile;
+            ColText := AnsiUpperCase(Copy(S, 2, Length(S) - 1)) + ' ' + stFile;
         end else
           ColText := SI.TypeName;
         SI.ColText.Add(ColText);
@@ -5448,10 +5459,14 @@ begin
         SI.FDate := EncodeDate(ST.wYear, ST.wMonth, ST.wDay) +
           EncodeTime(ST.wHour, ST.wMinute, ST.wSecond, 0);
       end;
+      {$IFDEF VERSIONXE}
+      SI.ColText.Add(FormatDateTime(FormatSettings.ShortDateFormat + ' ' + FormatSettings.ShortTimeFormat, SI.FDate));
+      {$ELSE}
       S := LongTimeFormat;
       LongTimeFormat := ShortTimeFormat;
       SI.ColText.Add(DateTimetoStr(SI.FDate));
       LongTimeFormat := S;
+      {$ENDIF}
       { Attributes }
       S := '';
       SI.FFileAttributes := FD.dwFileAttributes;
@@ -5480,20 +5495,29 @@ begin
         S := ExtractFileExt(SI.Path);
         if S = '' then
           ColText := stFile
-        else if UpperCase(S) = '.LNK' then
+        else if AnsiUpperCase(S) = '.LNK' then
           ColText := 'Shortcut'
         else
-          ColText := UpperCase(Copy(S, 2, Length(S) - 1)) + ' ' + stFile;
+          ColText := AnsiUpperCase(Copy(S, 2, Length(S) - 1)) + ' ' + stFile;
       end else
         ColText := SI.TypeName;
       SI.ColText.Add(ColText);
       { Modified }
       SI.DOSDate := SR.Time;
+      {$IFDEF VERSIONXE}
+      SI.FDate := SR.TimeStamp;
+      {$ELSE}
       SI.FDate := FileDateToDateTime(SR.Time);
+      {$ENDIF}
+
+      {$IFDEF VERSIONXE}
+      SI.ColText.Add(FormatDateTime(FormatSettings.ShortDateFormat + ' ' + FormatSettings.ShortTimeFormat, SI.FDate));
+      {$ELSE}
       S := LongTimeFormat;
       LongTimeFormat := ShortTimeFormat;
       SI.ColText.Add(DateTimetoStr(SI.FDate));
       LongTimeFormat := S;
+      {$ENDIF}
       { Attributes }
       S := '';
       {$IFDEF VERSION6} {$WARN SYMBOL_PLATFORM OFF} {$ENDIF}
@@ -6689,7 +6713,7 @@ begin
   while not Done do begin
     Index := -1;
     for I := 0 to Pred(ShellItems.Count) do
-      if UpperCase(S) = UpperCase(ShellItems[I].DisplayName) then begin
+      if AnsiUpperCase(S) = AnsiUpperCase(ShellItems[I].DisplayName) then begin
         S := FolderName + ' (' + IntToStr(Count) + ')';
         Inc(Count);
         Index := I;
@@ -7207,13 +7231,13 @@ end;
 
 procedure TStCustomShellNotification.ShellNotifyRegister;
 var
-  NR    : TStNotifyRegister;
+  NR    : TSHChangeNotifyEntry; //TStNotifyRegister;
   Flags : DWORD;
 begin
   if not (csDesigning in ComponentState) and
      not (csLoading in ComponentState) then begin
     NR.Pidl := WatchPidl;
-    NR.WatchSubTree := FWatchSubFolders;
+    NR.fRecursive {WatchSubTree} := FWatchSubFolders;
     { Registration is changing so remove existing registration. }
     if HNotify <> 0 then
       ShellNotifyUnRegister;
