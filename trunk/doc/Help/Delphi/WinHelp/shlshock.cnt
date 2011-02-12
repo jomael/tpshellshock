@@ -1,0 +1,29 @@
+:Base ShlShock.hlp
+:Title TurboPower ShellShock Help
+1 Welcome to ShellShock
+2 Welcome to ShellShock=Welcome_to_ShellShock>Main
+2 System Requirements=System_Requirements>Main
+2 Installation=Installation>Main
+2 Technical Support=Technical_Support>Main
+2 Support Classes
+3 TStShellItem Class=TStShellItem_Class>Main
+3 TStShellFolder Class=TStShellFolder_Class>Main
+3 TStShellItemList Class=TStShellItemList_Class>Main
+3 TStShellFolderList Class=TStShellFolderList_Class>Main
+2 Visual Components
+3 TStShellTreeView Component=TStShellTreeView_Component>Main
+3 TStShellListView Component=TStShellListView_Component>Main
+3 TStShellComboBox Component=TStShellComboBox_Component>Main
+3 TStShellNavigator Component=TStShellNavigator_Component>Main
+3 TStDialogPanel Component=TStDialogPanel_Component>Main
+2 Non-Visual Components
+3 TStCustomShellController Component=TStCustomShellController_Component
+3 TStShellEnumerator Component=TStShellEnumerator_Component
+3 TStShellNotification Component=TStShellNotification_Component
+3 TStShellAbout Component=TStShellAbout_Component
+3 TStBrowser Component=TStBrowser_Component
+3 TStFileOperation Component=TStFileOperation_Component
+3 TStFormatDrive Component=TStFormatDrive_Component
+3 TStTrayIcon Component=TStTrayIcon_Component
+3 TStDropFiles Component=TStDropFiles_Component
+3 TStShortcut Component=TStShortcut_Component
