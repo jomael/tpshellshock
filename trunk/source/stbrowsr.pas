@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -222,12 +223,12 @@ begin
         begin
           FHandle := hWnd;
           if FCaption <> '' then
-            SendMessage(hWnd, WM_SETTEXT, 0, Integer(PChar(FCaption)));
+            SendMessage(hWnd, WM_SETTEXT, 0, WPARAM(PChar(FCaption)));
           SendMessage(hWnd, BFFM_SETSELECTION,
-                      1, Integer(PChar(SelectedFolder)));
+                      1, Windows.LPARAM(PChar(SelectedFolder)));
           if StatusText <> '' then
             SendMessage(hWnd, BFFM_SETSTATUSTEXT,
-                        0, Integer(PChar(StatusText)));
+                        0, Windows.LPARAM(PChar(StatusText)));
           if FPosition = bpScreenCenter then begin
             GetWindowRect(hWnd, R);
             X := (Screen.Width div 2) - ((R.Right - R.Left) div 2);
@@ -303,9 +304,9 @@ var
   Attr         : LongInt;
   {$ENDIF}
   {$ENDIF}
-  DispName     : array [0..MAX_PATH - 1] of WideChar;
+  //DispName     : array [0..MAX_PATH - 1] of WideChar;
   Folder       : IShellFolder;
-  DisplayName  : array[0..MAX_PATH-1] of AnsiChar;
+  DisplayName  : array[0..MAX_PATH-1] of Char;
   Flags        : Word;
 begin
 
@@ -342,9 +343,9 @@ begin
 
   if (FRootFolder <> '') and (FSpecialRootFolder = sfNone) then begin
     SHGetDesktopFolder(Folder);
-    StringToWideChar(FRootFolder, DispName, MAX_PATH);
+    //StringToWideChar(FRootFolder, DispName, MAX_PATH);
     Folder.ParseDisplayName(ParentHandle, nil,
-                            DispName,
+                            PWideChar(WideString(FRootFolder)),
                             Eaten,
                             RootDir,
                             Attr);
@@ -362,7 +363,7 @@ begin
     pszDisplayName := DisplayName;
     lpszTitle := PChar(FAdditionalText);
     ulFlags := Flags;
-    lpfn := Pointer(@BrowseCallbackProc);                            
+    lpfn := Pointer(@BrowseCallbackProc);
     lParam := Integer(Self);
     iImage := 0;
   end;

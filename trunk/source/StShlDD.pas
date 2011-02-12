@@ -309,13 +309,16 @@ begin
       MS2.Position := 0;
       ZeroMemory(@DF, SizeOf(DF));
       DF.pFiles := SizeOf(DF);
+      {$IFDEF UNICODE}
+      DF.fWide := True;
+      {$ENDIF}
       MS2.Write(DF, SizeOf(DF));
       for I := 0 to Pred(PidlCount) do begin
         Pidl := ILCombine(FParentPidl, PidlArray[I]);
         ZeroMemory(@FName, SizeOf(FName));
         SHGetPathFromIdList(Pidl, FName);
         ILFree(Pidl);
-        MS2.Write(FName, StrLen(FName) + 1);
+        MS2.Write(FName, (StrLen(FName) + 1) * SizeOf(Char));
       end;
       { Write out the last null for double-null termination. }
       Offset := 0;

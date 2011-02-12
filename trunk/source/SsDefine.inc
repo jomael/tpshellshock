@@ -137,6 +137,14 @@
  {$ENDIF}
 {$ENDIF}
 
+{$IFDEF VERSION7}
+  {$IF compilerversion >= 21}     // Delphi 2010 or higher
+    {$DEFINE VERSION2010}
+  {$IFEND}
+  {$IF compilerversion >= 22}
+    {$DEFINE VERSIONXE}
+  {$IFEND}
+{$ENDIF}
 
 
 {$IFDEF VERSION4}

@@ -29,32 +29,34 @@
 {* ShellShock: Specialized Stream Classes for ShellShock *}
 {*********************************************************}
 
-{$I SsDefine.inc}
-
 unit SsStrms;
 
 interface
+
+{$I SsDefine.inc}
 
 uses
   Windows,
   SysUtils,
   Classes,
-
+  {$IFDEF UNICODE}
+  Generics.Collections,
+  {$ENDIF}
   SsBase,
   SsConst;
 
 type
   TStMemSize = Integer;
 
-  {$IFNDEF VERSION3}                                           
-  TStSetStreamSize = procedure(aStream  : TStream;             
-                               aNewSize : longint) of object;  
-  {$ENDIF}                                                     
+  {$IFNDEF VERSION3}
+  TStSetStreamSize = procedure(aStream  : TStream;
+                               aNewSize : longint) of object;
+  {$ENDIF}
 
   TStBufferedStream = class(TStream)
     private
       FBufCount: TStMemSize;   {count of valid bytes in buffer}
-      FBuffer  : PAnsiChar;    {buffer into underlying stream}
+      FBuffer  : {$IFDEF UNICODE}PByte{$ELSE}PAnsiChar{$ENDIF};    {buffer into underlying stream}
       FBufOfs  : longint;      {offset of buffer in underlying stream}
       FBufPos  : TStMemSize;   {current position in buffer}
       FBufSize : TStMemSize;   {size of buffer}
@@ -62,20 +64,22 @@ type
       FSize    : longint;      {size of underlying stream}
       FStream  : TStream;      {underlying stream}
       {$IFNDEF VERSION3}
-      FOnSetStreamSize : TStSetStreamSize;                     
+      FOnSetStreamSize : TStSetStreamSize;
                                {event to set underlying stream's size}
       {$ENDIF}
     protected
       procedure bsSetStream(aValue : TStream);
 
       procedure bsInitForNewStream; virtual;
-      function bsReadChar(var aCh : AnsiChar) : boolean;
+      function bsReadAnsiChar(var aCh : AnsiChar) : boolean;
+      function bsReadByte(var AByte: Byte): Boolean;
+      function bsReadWideChar(var ACh: Char): Boolean;
       procedure bsReadFromStream;
       procedure bsWriteToStream;
 
-      {$IFDEF VERSION3}                                        
-      procedure SetSize(NewSize : longint); override;          
-      {$ENDIF}                                                 
+      {$IFDEF VERSION3}
+      procedure SetSize(const NewSize : Int64); override;
+      {$ENDIF}
     public
       constructor Create(aStream : TStream);
       constructor CreateEmpty;
@@ -84,17 +88,17 @@ type
       function Read(var Buffer; Count : longint) : longint; override;
       function Seek(Offset : longint; Origin : word) : longint; override;
       function Write(const Buffer; Count : longint) : longint; override;
-      {$IFNDEF VERSION3}                                       
-      procedure SetSize(NewSize : longint);                    
-      {$ENDIF}                                                 
+      {$IFNDEF VERSION3}
+      procedure SetSize(NewSize : longint);
+      {$ENDIF}
 
       property FastSize : longint read FSize;
       property Stream : TStream read FStream write bsSetStream;
 
-      {$IFNDEF VERSION3}                                       
-      property OnSetStreamSize : TStSetStreamSize              
-                 read FOnSetStreamSize write FOnSetStreamSize; 
-      {$ENDIF}                                                 
+      {$IFNDEF VERSION3}
+      property OnSetStreamSize : TStSetStreamSize
+                 read FOnSetStreamSize write FOnSetStreamSize;
+      {$ENDIF}
    end;
 
 type
@@ -136,7 +140,7 @@ type
 
       function AtEndOfStream : boolean;
 
-      function ReadLine : string;
+      function ReadLine : AnsiString;
       function ReadLineArray(aCharArray : PAnsiChar; aLen : TStMemSize)
                                                           : TStMemSize;
       function ReadLineZ(aSt : PAnsiChar; aMaxLen : TStMemSize) : PAnsiChar;
@@ -144,7 +148,7 @@ type
       function SeekNearestLine(aOffset : longint) : longint;
       function SeekLine(aLineNum : longint) : longint;
 
-      procedure WriteLine(const aSt : string);
+      procedure WriteLine(const aSt : AnsiString);
       procedure WriteLineArray(aCharArray : PAnsiChar; aLen : TStMemSize);
       procedure WriteLineZ(aSt : PAnsiChar);
 
@@ -157,6 +161,58 @@ type
       property LineTerminator : TStLineTerminator
                   read FLineTerm write atsSetLineTerm;
   end;
+
+  {$IFDEF UNICODE}
+  TStTextStream = class(TStBufferedStream)
+  private
+    FLineEndCh   : Char;
+    FLineLen     : integer;
+    FLineTerm    : TStLineTerminator;
+    FFixedLine   : PChar;
+    FLineCount   : longint;
+    FLineCurrent : longint;
+    FLineCurOfs  : longint;
+    FLineIndex   : TList<Int64>;
+    FLineInxStep : longint;
+    FLineInxTop  : integer;
+    FEncoding: TEncoding;
+  protected
+    function atsGetLineCount: longint;
+
+    procedure atsSetLineTerm(aValue : TStLineTerminator);
+    procedure atsSetLineEndCh(aValue : Char);
+    procedure atsSetLineLen(aValue : integer);
+
+    procedure atsGetLine(out aStartPos : longint;
+                         out aEndPos   : longint;
+                         out aLen      : longint);
+    procedure atsResetLineIndex;
+
+    procedure bsInitForNewStream; override;
+    function bsReadChar(var aCh : Char) : boolean;
+  public
+    constructor Create(aStream : TStream);
+    destructor Destroy; override;
+
+    function AtEndOfStream : boolean;
+
+    function ReadLine : string;
+    function ReadLineArray(aCharArray : PChar; aLen : TStMemSize): TStMemSize;
+    function ReadLineZ(aSt : PChar; aMaxLen : TStMemSize) : PChar;
+
+    function SeekNearestLine(aOffset : longint) : longint;
+    function SeekLine(aLineNum : longint) : longint;
+
+    procedure WriteLine(const aSt : string);
+    procedure WriteLineArray(aCharArray : PChar; aLen : TStMemSize);
+    procedure WriteLineZ(aSt : PChar);
+
+    property FixedLineLength : integer read FLineLen write atsSetLineLen;
+    property LineCount : longint read atsGetLineCount;
+    property LineTermChar : Char read FLineEndCh write atsSetLineEndCh;
+    property LineTerminator : TStLineTerminator read FLineTerm write atsSetLineTerm;
+  end experimental;
+  {$ENDIF}
 
   TStMemoryMappedFile = class(TStream)
   protected {private}
@@ -256,7 +312,7 @@ begin
   FBufSize := 4096;
   GetMem(FBuffer, FBufSize);
 
-  bsInitForNewStream
+  bsInitForNewStream;
 end;
 
 {-----------------------------------------------------------------------------}
@@ -288,7 +344,7 @@ end;
 
 {-----------------------------------------------------------------------------}
 
-function TStBufferedStream.bsReadChar(var aCh : AnsiChar) : boolean;
+function TStBufferedStream.bsReadAnsiChar(var aCh : AnsiChar) : boolean;
 begin
   {is there anything to read?}
   if (FSize = (FBufOfs + FBufPos)) then begin
@@ -312,6 +368,30 @@ begin
   inc(FBufPos);
 end;
 
+function TStBufferedStream.bsReadByte(var AByte: Byte): Boolean;
+begin
+  {is there anything to read?}
+  if (FSize = (FBufOfs + FBufPos)) then begin
+    Result := false;
+    Exit;
+  end;
+  {if we get here, we'll definitely read a character}
+  Result := true;
+  {make sure that the buffer has some data in it}
+  if (FBufCount = 0) then
+    bsReadFromStream
+  else if (FBufPos = FBufCount) then begin
+    if FDirty then
+      bsWriteToStream;
+    FBufPos := 0;
+    inc(FBufOfs, FBufSize);
+    bsReadFromStream;
+  end;
+  {get the next character}
+  aByte := Byte(FBuffer[FBufPos]);
+  inc(FBufPos);
+end;
+
 {-----------------------------------------------------------------------------}
 
 procedure TStBufferedStream.bsReadFromStream;
@@ -325,6 +405,11 @@ begin
   if (NewPos <> FBufOfs) then
     RaiseStError(ESsBufStreamError, ssscNoSeekForRead);
   FBufCount := FStream.Read(FBuffer^, FBufSize);
+end;
+
+function TStBufferedStream.bsReadWideChar(var ACh: Char): Boolean;
+begin
+  Result := Read(aCh, 2) = 2;
 end;
 
 {-----------------------------------------------------------------------------}
@@ -461,9 +546,9 @@ end;
 
 {-----------------------------------------------------------------------------}
 
-procedure TStBufferedStream.SetSize(NewSize : longint);
+procedure TStBufferedStream.SetSize(const NewSize : Int64);
 var
-  NewPos : longint;
+  NewPos : Int64;
 begin
   {get rid of the simple case first where the new size and the old
    size are the same}
@@ -604,7 +689,7 @@ begin
     Done := false;
     while not Done do begin
       PrevCh := Ch;
-      if not bsReadChar(Ch) then begin
+      if not bsReadAnsiChar(Ch) then begin
         Done := true;
         aEndPos := FBufOfs + FBufPos;
         aLen := aEndPos - aStartPos;
@@ -736,7 +821,7 @@ end;
 
 {-----------------------------------------------------------------------------}
 
-function TStAnsiTextStream.ReadLine : string;
+function TStAnsiTextStream.ReadLine : AnsiString;
 var
   CurPos : longint;
   EndPos : longint;
@@ -1078,7 +1163,7 @@ end;
 
 {-----------------------------------------------------------------------------}
 
-procedure TStAnsiTextStream.WriteLine(const aSt : string);
+procedure TStAnsiTextStream.WriteLine(const aSt : AnsiString);
 begin
   WriteLineArray(@aSt[1], length(aSt));
 end;
@@ -1382,6 +1467,269 @@ end;
 
 {-----------------------------------------------------------------------------}
 
+{$IFDEF UNICODE}
+
+{ TStTextStream }
+
+function TStTextStream.AtEndOfStream: boolean;
+begin
+  Result := FSize = (FBufOfs + FBufPos);
+end;
+
+procedure TStTextStream.atsGetLine(out aStartPos, aEndPos, aLen: Integer);
+var
+  Done   : boolean;
+  Ch     : Char;
+  PrevCh : Char;
+begin
+  if (LineTerminator = ltNone) then begin
+    aStartPos := FBufOfs + FBufPos;
+    aEndPos := Seek(aStartPos + FixedLineLength, soFromBeginning);
+    aLen := aEndPos - aStartPos;
+  end
+  else begin
+    aStartPos := FBufOfs + FBufPos;
+    Ch := #0;
+    Done := false;
+    while not Done do begin
+      PrevCh := Ch;
+      if not bsReadChar(Ch) then begin
+        Done := true;
+        aEndPos := FBufOfs + FBufPos;
+        aLen := aEndPos - aStartPos;
+      end
+      else begin
+        case LineTerminator of
+          ltNone : {this'll never get hit};
+          ltCR   : if (Ch = #13) then begin
+                     Done := true;
+                     aEndPos := FBufOfs + FBufPos;
+                     aLen := aEndPos - aStartPos - 1;
+                   end;
+          ltLF   : if (Ch = #10) then begin
+                     Done := true;
+                     aEndPos := FBufOfs + FBufPos;
+                     aLen := aEndPos - aStartPos - 1;
+                   end;
+          ltCRLF : if (Ch = #10) then begin
+                     Done := true;
+                     aEndPos := FBufOfs + FBufPos;
+                     if PrevCh = #13 then
+                       aLen := aEndPos - aStartPos - 2
+                     else
+                       aLen := aEndPos - aStartPos - 1;
+                   end;
+          ltOther: if (Ch = LineTermChar) then begin
+                     Done := true;
+                     aEndPos := FBufOfs + FBufPos;
+                     aLen := aEndPos - aStartPos - 1;
+                   end;
+        else
+          RaiseStError(ESsBufStreamError, ssscBadTerminator);
+        end;
+      end;
+    end;
+  end;
+end;
+
+function TStTextStream.atsGetLineCount: longint;
+begin
+  if FLineCount < 0 then
+    Result := High(Result)
+  else
+    Result := FLineCount;
+end;
+
+procedure TStTextStream.atsResetLineIndex;
+begin
+  {make sure we have a line index}
+  if (FLineIndex = nil) then begin
+    FLineIndex := TList<Int64>.Create;  {create the index: even elements are}
+
+    {if we didn't have a line index, set up some reasonable defaults}
+    FLineTerm := ltCRLF;  {normal Windows text file terminator}
+    FLineEndCh := #10;    {not used straight away}
+    FLineLen := 80;       {not used straight away}
+  end;
+  FLineIndex.Add(0);      {the first line is line 0 and it starts at position 0}
+  FLineInxTop := 0;            {the top valid index}
+  FLineInxStep := 1;           {step count before add a line to index}
+  FLineCount := -1;            {number of lines (-1 = don't know)}
+  FLineCurrent := 0;           {current line}
+  FLineCurOfs := 0;            {current line offset}
+end;
+
+procedure TStTextStream.atsSetLineEndCh(aValue: Char);
+begin
+  if ((FBufOfs + FBufPos) = 0) then begin
+    FLineEndCh := aValue;
+    atsResetLineIndex;
+  end;
+end;
+
+procedure TStTextStream.atsSetLineLen(aValue: integer);
+begin
+  if (aValue <> FixedLineLength) and ((FBufOfs + FBufPos) = 0) then begin
+    {validate the new length first}
+    if (aValue < 1) or (aValue > 1024) then
+      RaiseStError(ESsBufStreamError, ssscBadLineLength);
+
+    {set the new value; note that if there is no terminator we need to
+     free the old line buffer, and then allocate a new one}
+    if (LineTerminator = ltNone) then
+      FreeMem(FFixedLine);
+    FLineLen := aValue;
+    if (LineTerminator = ltNone) then
+      GetMem(FFixedLine, FixedLineLength);
+    atsResetLineIndex;
+  end;
+end;
+
+procedure TStTextStream.atsSetLineTerm(aValue: TStLineTerminator);
+begin
+  if (aValue <> LineTerminator) and ((FBufOfs + FBufPos) = 0) then begin
+    {if there was no terminator, free the line buffer}
+    if (LineTerminator = ltNone) then begin
+      FreeMem(FFixedLine);
+      FFixedLine := nil;
+    end;
+    {set the new value}
+    FLineTerm := aValue;
+    {if there is no terminator now, allocate the line buffer}
+    if (LineTerminator = ltNone) then begin
+      GetMem(FFixedLine, FixedLineLength);
+    end;
+    atsResetLineIndex;
+  end;
+end;
+
+procedure TStTextStream.bsInitForNewStream;
+begin
+  inherited bsInitForNewStream;
+  atsResetLineIndex;
+end;
+
+function TStTextStream.bsReadChar(var aCh: Char): boolean;
+var
+  tmp: AnsiChar;
+  tmp2: Char;
+
+  function SwapWord(i: Char): Char;
+  asm
+    ror ax, 8
+  end;
+begin
+  if FEncoding.IsSingleByte then
+  begin
+    Result := bsReadAnsiChar(tmp);
+    if Result then
+      aCh := Char(tmp);
+  end
+  else if FEncoding = TEncoding.Unicode then
+    Result := bsReadChar(aCh)
+  else if FEncoding = TEncoding.BigEndianUnicode then
+  begin
+    Result := bsReadChar(aCh);
+    SwapWord(aCh);
+  end
+  else if FEncoding = TEncoding.UTF8 then
+    raise EStreamError.Create('TFU8 Encoding is not supported yet.')
+  else
+    raise EStreamError.Create('Encoding is not supported yet.');
+end;
+
+constructor TStTextStream.Create(aStream: TStream);
+begin
+  inherited Create(aStream);
+
+  {set up the line index variables}
+  atsResetLineIndex;
+end;
+
+destructor TStTextStream.Destroy;
+begin
+  {if needed, free the fixed line buffer}
+  if (FFixedLine <> nil) then
+    FreeMem(FFixedLine);
+  {free the line index}
+  FLineIndex.Free;
+  inherited Destroy;
+end;
+
+function TStTextStream.ReadLine: string;
+var
+  CurPos : longint;
+  EndPos : longint;
+  Len    : longint;
+  StLen  : longint;
+  tmp    : TBytes;
+begin
+  atsGetLine(CurPos, EndPos, Len);
+  if (LineTerminator = ltNone) then begin
+    {at this point, Len will either equal FixedLineLength, or it will
+     be less than it because we read the last line of all and it was
+     short}
+    StLen := FixedLineLength;
+    SetLength(tmp, StLen);
+    if (Len < StLen) then
+      FillChar(tmp[Len+1], StLen-Len, ' ');     // ~~~ TODO
+  end
+  else {LineTerminator is not ltNone} begin
+    SetLength(tmp, Len);
+  end;
+  {read the line}
+  Seek(CurPos, soFromBeginning);
+  Read(tmp[0], Len);
+  Seek(EndPos, soFromBeginning);
+  Result := FEncoding.GetString(tmp);
+end;
+
+function TStTextStream.ReadLineArray(aCharArray: PChar;
+  aLen: TStMemSize): TStMemSize;
+var
+  S: string;
+begin
+  S := Copy(ReadLine, 1, aLen);
+  Result := Length(S);
+  StrPLCopy(aCharArray, S, aLen);
+end;
+
+function TStTextStream.ReadLineZ(aSt: PChar; aMaxLen: TStMemSize): PChar;
+var
+  Len: Integer;
+begin
+  Len := ReadLineArray(aSt, aMaxLen);
+  aSt[Len] := #0;
+  Result := aSt;
+end;
+
+function TStTextStream.SeekLine(aLineNum: Integer): longint;
+begin
+
+end;
+
+function TStTextStream.SeekNearestLine(aOffset: Integer): longint;
+begin
+
+end;
+
+procedure TStTextStream.WriteLine(const aSt: string);
+begin
+
+end;
+
+procedure TStTextStream.WriteLineArray(aCharArray: PChar; aLen: TStMemSize);
+begin
+
+end;
+
+procedure TStTextStream.WriteLineZ(aSt: PChar);
+begin
+
+end;
+
+{$ENDIF}
 
 end.
+
 

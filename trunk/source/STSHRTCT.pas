@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -68,10 +69,10 @@ type
     FDestinationDir   : string;
     FFileName         : string;
     FHotKey           : Word;
-    FIconIndex        : Integer;                                       
-    FIconPath         : string;                                        
+    FIconIndex        : Integer;
+    FIconPath         : string;
     FLocationType     : TStLocationType;
-    FParameters       : string;                                        
+    FParameters       : string;
     FShortcutFileName : string;
     FShowCommand      : TShowState;
     FSpecialFolder    : TStSpecialRootFolder;
@@ -165,10 +166,10 @@ type
     property DestinationDir;
     property FileName;
     property HotKey;
-    property IconIndex;                                                
-    property IconPath;                                                 
+    property IconIndex;
+    property IconPath;
     property LocationType;
-    property Parameters;                                               
+    property Parameters;
     property ShortcutFileName;
     property ShowCommand;
     property SpecialFolder;
@@ -238,7 +239,7 @@ begin
         ShellFolders[FSpecialFolder], IDList);
     ltWorkingDir :
       begin
-        GetModuleFileName(0, Buff, SizeOf(Buff));
+        GetModuleFileName(0, Buff, Length(Buff));
         Path := ExtractFilePath(Buff) + '\';
       end;
     ltDirectory :
@@ -263,7 +264,9 @@ var
   {$ENDIF}
   Link  : IShellLink;
   PFile : IPersistFile;
+  {$IFNDEF UNICODE}
   WBuff : array [0..MAX_PATH - 1] of WideChar;
+  {$ENDIF}
   Buff  : array [0..MAX_PATH - 1] of Char;
   FD    : TWin32FindData;
   Cmd   : Integer;
@@ -271,7 +274,7 @@ var
 begin
   if (FShortcutFileName = '') or not FileExists(FShortcutFileName) then
     RaiseStError(ESsShortcutError, ssscFileOpen);
-  if UpperCase(ExtractFileExt(FShortcutFileName)) <> '.LNK' then
+  if AnsiUpperCase(ExtractFileExt(FShortcutFileName)) <> '.LNK' then
     RaiseStError(ESsShortcutError, ssscNotShortcut);
 
   if Owner is TWinControl then
@@ -301,10 +304,15 @@ begin
   if Res <> S_OK then
     RaiseStError(EStShortcutError, ssscIShellLinkError);
   {$ENDIF}
-  if Assigned(Link) and Assigned(PFile) then begin
+  if Assigned(Link) and Assigned(PFile) then
+  begin
+    {$IFDEF UNICODE}
+    Res := PFile.Load(PChar(FShortcutFileName), STGM_READ);
+    {$ELSE}
     MultiByteToWideChar(CP_ACP, 0,
       PChar(FShortcutFileName), -1, WBuff, MAX_PATH);
     Res := PFile.Load(WBuff, STGM_READ);
+    {$ENDIF}
     if Res = S_OK then begin
       Res := Link.Resolve(ParentHandle, SLR_ANY_MATCH or SLR_UPDATE);
       if Res = S_OK then begin
@@ -373,10 +381,14 @@ begin
     end;
     if FStartInDir <> '' then
       Link.SetWorkingDirectory(PChar(FStartInDir));
-    if FIconPath <> '' then                                            
+    if FIconPath <> '' then
       Link.SetIconLocation(PChar(FIconPath), FIconIndex);
+    {$IFDEF UNICODE}
+    Res := PFile.Save(PChar(AFileName), False);
+    {$ELSE}
     MultiByteToWideChar(CP_ACP, 0, PChar(AFileName), -1, WBuff, MAX_PATH);
     Res := PFile.Save(WBuff, False);
+    {$ENDIF}
     if Res = S_OK then
     {$IFDEF VERSION 3}
       FShortcutFileName := WBuff;

@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -129,7 +130,10 @@ const
   SHFMT_ERROR        = $FFFFFFFF; { Other format error.               }
 
 function SHFormatDrive(hWnd : HWND; Drive, FormatID, Options : Integer)
-                       : Integer; stdcall; external 'shell32.dll';
+                       : Integer; stdcall; external 'shell32.dll' {$IFDEF VERSION2010} delayed; platform {$ENDIF};
+// Note  This function is available through Windows XP Service Pack 2 (SP2) and Windows Server 2003.
+//    It might be altered or unavailable in subsequent versions of Windows.
+
 
 function TStCustomFormatDrive.CheckDiskette : Integer;
 var
@@ -143,7 +147,7 @@ begin
   if Assigned(FOnDisketteError) then begin
     { Catch diskette errors here. }
     OldErrMode := SetErrorMode(SEM_FAILCRITICALERRORS);
-    GetCurrentDirectory(SizeOf(OldDir), OldDir);
+    GetCurrentDirectory(Length(OldDir), OldDir);
     SetLastError(0);
     { First try to switch to FDrive. }
     SetCurrentDirectory(PChar(FDrive));
@@ -238,15 +242,15 @@ begin
     if not (fmtFull in FOptions) then
       Flags := Flags or SHFMT_OPT_FULL;
   { Convert drive letter to a drive number. }
-  DriveNo := Ord(UpperCase(FDrive)[1]) - Ord('A');                     
+  DriveNo := Ord(AnsiUpperCase(FDrive)[1]) - Ord('A');
   { Execute the Format dialog. }
   Err := SHFormatDrive(ParentHandle, DriveNo, SHFMT_ID_DEFAULT, Flags);
   if (Err < 0) then begin
     FError := Err;
     case FError of
-      Integer(SHFMT_ERROR)    : Err := ssscShellFormatError;           
-      Integer(SHFMT_CANCEL)   : Err := ssscShellFormatCancel;          
-      Integer(SHFMT_NOFORMAT) : Err := ssscShellFormatNoFormat;        
+      Integer(SHFMT_ERROR)    : Err := ssscShellFormatError;
+      Integer(SHFMT_CANCEL)   : Err := ssscShellFormatCancel;
+      Integer(SHFMT_NOFORMAT) : Err := ssscShellFormatNoFormat;
     end;
     FErrorString := ShellShockStr(Err);
     if Assigned(FOnFormatError) then
@@ -263,7 +267,7 @@ var
   P : Integer;
 begin
   if Value <> '' then begin
-    FDrive := UpperCase(Value);
+    FDrive := AnsiUpperCase(Value);
     { Fix-up drive letter if necessary. Won't catch every }
     { user error but will catch the most common ones.    }
     P := Pos('\', FDrive);

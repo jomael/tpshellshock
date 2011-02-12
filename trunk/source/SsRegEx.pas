@@ -44,8 +44,8 @@ uses
   SsStrms;
 
 const
-  StWordDelimString : string[31] = #9#32'!"&()*+,-./:;<=>?@[\]^`{|}~';
-  StHexDigitString  : string[19] = '0123456789ABCDEF';
+  StWordDelimString : string = #9#32'!"&()*+,-./:;<=>?@[\]^`{|}~';
+  StHexDigitString  : string = '0123456789ABCDEF';
 
 type
   TMatchPosition = packed record
@@ -64,11 +64,11 @@ type
 
   PStPatRecord = ^TStPatRecord;
   TStPatRecord = packed record
-    StrPtr        : ^ShortString;
+    StrPtr        : PString;
     NestedPattern : PStPatRecord;
     NextPattern   : PStPatRecord;
     Token         : TStTokens;
-    OneChar       : AnsiChar;
+    OneChar       : Char;
     NextOK        : Boolean;
   end;
 
@@ -104,14 +104,14 @@ type
     { Private declarations }
     FAvoid            : Boolean;
     FIgnoreCase       : Boolean;
-    FInTextStream     : TStAnsiTextStream;
+    FInTextStream     : TStTextStream;
     FInFileSize       : Cardinal;
     FInputStream      : TStream;
 
-    FInLineBuf        : PAnsiChar;
+    FInLineBuf        : PChar;
     FInLineCount      : Cardinal;
     FInLineNum        : Cardinal;
-    FInLineTermChar   : AnsiChar;
+    FInLineTermChar   : Char;
     FInLineTerminator : TStLineTerminator;
     FInLineLength     : integer;
     FLineNumbers      : Boolean;
@@ -120,7 +120,7 @@ type
     FMatchCount       : Cardinal;
 
     FMatchPatSL       : TStringList;
-    FMatchPatStr      : PAnsiChar;
+    FMatchPatStr      : PChar;
     FMatchPatPtr      : PStPatRecord;
 
     FMaxLineLength    : Cardinal;
@@ -129,23 +129,23 @@ type
 
     FOnMatch          : TStOnMatchEvent;
     FOutLineLength    : integer;
-    FOutLineTermChar  : AnsiChar;
+    FOutLineTermChar  : Char;
     FOutLineTerminator: TStLineTerminator;
 
     FReplaceCount     : Cardinal;
     FReplacePatSL     : TStringList;
-    FReplacePatStr    : PAnsiChar;
+    FReplacePatStr    : PChar;
     FReplacePatPtr    : PStPatRecord;
 
     FOnProgress       : TStOnRegExProgEvent;
     FOutputStream     : TStream;
-    FOutTextStream    : TStAnsiTextStream;
-    FOutLineBuf       : PAnsiChar;
+    FOutTextStream    : TStTextStream;
+    FOutLineBuf       : PChar;
 
     FOutputOptions    : TStOutputOptions;
 
     FSelAvoidPatSL    : TStringList;
-    FSelAvoidPatStr   : PAnsiChar;
+    FSelAvoidPatStr   : PChar;
     FSelAvoidPatPtr   : PStPatRecord;
 
     FSelectCount      : Cardinal;
@@ -156,48 +156,48 @@ type
     procedure AddTokenToPattern(var PatRec : PStPatRecord;
                                 LastPatRec : PStPatRecord;
                                      Token : TStTokens;
-                                         S : ShortString);
+                                         S : string);
     procedure AddTokenToReplace(var PatRec : PStPatRecord;
                                 LastPatRec : PStPatRecord;
                                      Token : TStTokens;
-                                     S     : ShortString);
-    function  AppendS(Dest, S1, S2 : PAnsiChar; Count : Cardinal) : PAnsiChar;
+                                     S     : string);
+    function  AppendS(Dest, S1, S2 : PChar; Count : Cardinal) : PChar;
     function  BuildAllPatterns : boolean;
-    function  BuildPatternStr(var PStr  : PAnsiChar;
+    function  BuildPatternStr(var PStr  : PChar;
                               var Len   : Integer;
                                   SL    : TStringList) : Boolean;
     function  ConvertMaskToRegEx(const S : string) : String;
     procedure DisposeItems(var Data : PStPatRecord);
 
-    procedure InsertLineNumber(Dest : PAnsiChar;
-                               const S : PAnsiChar; LineNum : Integer);
-    function  GetPattern(var Pattern : PAnsiChar;
+    procedure InsertLineNumber(Dest : PChar;
+                               const S : PChar; LineNum : Integer);
+    function  GetPattern(var Pattern : PChar;
                          var PatList : PStPatRecord) : Boolean;
-    function  GetReplace(Pattern     : PAnsiChar;
+    function  GetReplace(Pattern     : PChar;
                          var PatList : PStPatRecord) : Boolean;
-    function  MakePattern(var Pattern : PAnsiChar;
+    function  MakePattern(var Pattern : PChar;
                               Start   : Integer;
-                              Delim   : AnsiChar;
+                              Delim   : Char;
                           var TagOn   : Boolean;
                           var PatList : PStPatRecord) : Integer;
-    function  MakeReplacePattern(Pattern     : PAnsiChar;
+    function  MakeReplacePattern(Pattern     : PChar;
                                  Start       : Integer;
-                                 Delim       : AnsiChar;
+                                 Delim       : Char;
                                  var PatList : PStPatRecord) : Integer;
-    function  FindMatch(var Buf        : PAnsiChar;
+    function  FindMatch(var Buf        : PChar;
                             PatPtr     : PStPatRecord;
                         var REPosition : TMatchPosition) : Boolean;
-    function  MatchOnePatternElement(var Buf    : PAnsiChar;
+    function  MatchOnePatternElement(var Buf    : PChar;
                                      var I      : Integer;
                                      var TagOn  : Boolean;
                                      var TagNum : Integer;
                                        PatPtr   : PStPatRecord) : Boolean;
-    function  ProcessLine(Buf           : PAnsiChar;
+    function  ProcessLine(Buf           : PChar;
                           Len           : integer;
                           LineNum       : integer;
                           CheckOnly     : Boolean;
                           var REPosition: TMatchPosition) : Boolean;
-    function  SearchMatchPattern(var Buf    : PAnsiChar;
+    function  SearchMatchPattern(var Buf    : PChar;
                                      OffSet : Integer;
                                  var TagOn  : Boolean;
                                  var TagNum : Integer;
@@ -206,28 +206,28 @@ type
     procedure SetOptions(Value : TStOutputOptions);
     procedure SetReplacePatSL(Value : TStringList);
     procedure SetSelAvoidPatSL(Value : TStringList);
-    procedure SubLine(Buf : PAnsiChar);
-    function  SubLineFindTag(Buf         : PAnsiChar;
+    procedure SubLine(Buf : PChar);
+    function  SubLineFindTag(Buf         : PChar;
                              I           : Integer;
                              IEnd        : Integer;
                              TagNum      : Integer;
                              var Flags   : TStFlag;
                              var IStart  : Integer;
                              var IStop   : Integer) : Boolean;
-    function  SubLineMatchOne(Buf        : PAnsiChar;
+    function  SubLineMatchOne(Buf        : PChar;
                               var Flags  : TStFlag;
                               var TagOn  : Boolean;
                               var I      : Integer;
                               var TagNum : Integer;
                               PatPtr     : PStPatRecord) : Boolean;
-    function  SubLineMatchPattern(Buf        : PAnsiChar;
+    function  SubLineMatchPattern(Buf        : PChar;
                                   var Flags  : TStFlag;
                                   var TagOn  : Boolean;
                                   var TagNum : Integer;
                                   OffSet     : Integer;
                                   PatPtr     : PStPatRecord) : Integer;
-    procedure SubLineWrite(Buf       : PAnsiChar;
-                           S         : PAnsiChar;
+    procedure SubLineWrite(Buf       : PChar;
+                           S         : PChar;
                            RepRec    : PStPatRecord;
                            I,
                            IEnd      : Integer;
@@ -266,7 +266,7 @@ type
       read FInLineLength
       write FInLineLength;
 
-    property InLineTermChar : AnsiChar
+    property InLineTermChar : Char
       read FInLineTermChar
       write FInLineTermChar;
 
@@ -313,7 +313,7 @@ type
       read FOutLineLength
       write FOutLineLength;
 
-    property OutLineTermChar : AnsiChar
+    property OutLineTermChar : Char
       read FOutLineTermChar
       write FOutLineTermChar;
 
@@ -334,7 +334,7 @@ type
       write SetSelAvoidPatSL;
   end;
 
-
+  {$M+}
   TStRegEx = class
   protected {private}
     FAvoid            : Boolean;
@@ -343,7 +343,7 @@ type
     FInFileStream     : TFileStream;
     FInLineCount      : Cardinal;
 
-    FInLineTermChar   : AnsiChar;
+    FInLineTermChar   : Char;
     FInLineTerminator : TStLineTerminator;
     FInFixedLineLength: integer;
     FInputFile        : string;
@@ -354,7 +354,7 @@ type
     FMatchCount       : Cardinal;
 
     FMatchPatSL       : TStringList;
-    FMatchPatStr      : PAnsiChar;
+    FMatchPatStr      : PChar;
     FMatchPatPtr      : PStPatRecord;
 
     FMaxLineLength    : Cardinal;
@@ -366,10 +366,10 @@ type
 
     FOutFileStream    : TFileStream;
     FOutTextStream    : TStAnsiTextStream;
-    FOutLineBuf       : PAnsiChar;
+    FOutLineBuf       : PChar;
 
     FOutFixedLineLength : integer;
-    FOutLineTermChar  : AnsiChar;
+    FOutLineTermChar  : Char;
     FOutLineTerminator: TStLineTerminator;
 
     FOutputFile       : string;
@@ -377,11 +377,11 @@ type
 
     FReplaceCount     : Cardinal;
     FReplacePatSL     : TStringList;
-    FReplacePatStr    : PAnsiChar;
+    FReplacePatStr    : PChar;
     FReplacePatPtr    : PStPatRecord;
 
     FSelAvoidPatSL    : TStringList;
-    FSelAvoidPatStr   : PAnsiChar;
+    FSelAvoidPatStr   : PChar;
     FSelAvoidPatPtr   : PStPatRecord;
 
     FSelectCount      : Cardinal;
@@ -418,7 +418,7 @@ type
       read FInFixedLineLength
       write FInFixedLineLength;
 
-    property InLineTermChar : AnsiChar
+    property InLineTermChar : Char
       read FInLineTermChar
       write FInLineTermChar;
 
@@ -469,7 +469,7 @@ type
       read FOutFixedLineLength
       write FOutFixedLineLength;
 
-    property OutLineTermChar : AnsiChar
+    property OutLineTermChar : Char
       read FOutLineTermChar
       write FOutLineTermChar;
 
@@ -493,6 +493,7 @@ type
       read FSelAvoidPatSL
       write SetSelAvoidPatSL;
   end;
+  {$M-}
 
 
 implementation
@@ -529,12 +530,12 @@ const
   lNil           = 'z';
 
 
-function CleanUpCase(S : ShortString) : ShortString;
+function CleanUpCase(S : string) : string;
 {-convert string to uppercase and remove duplicates}
 var
   I  : Integer;
   K  : Cardinal;
-  C  : AnsiChar;
+  C  : Char;
 begin
   Result := '';
   S := AnsiUpperCase(S);
@@ -546,30 +547,30 @@ begin
 end;
 
 
-procedure AppendChar(C : AnsiChar; var S : ShortString);
+procedure AppendChar(C : Char; var S : string);
  {-append a character C onto string S}
 begin
   S := S + C;
 end;
 
 
-function IsAlphaNum(C : AnsiChar) : Boolean;
+function IsAlphaNum(C : Char) : Boolean;
 begin
   Result := IsCharAlphaNumeric(C);
 end;
 
 
-procedure ExpandDash(Delim       : AnsiChar;
-                     var Pattern : PAnsiChar ;
+procedure ExpandDash(Delim       : Char;
+                     var Pattern : PChar;
                      var I       : Integer;
-                     var S       : ShortString);
+                     var S       : string);
 {-expand the innards of the character class, including dashes}
 {stop when endc is found}
 {return a string S with the expansion}
 var
   C,
   CLeft,
-  CNext  : AnsiChar;
+  CNext  : Char;
   K      : Integer;
 
 begin
@@ -616,9 +617,9 @@ begin
 end;
 
 
-function GetCharacterClass(var Pattern : PAnsiChar;
+function GetCharacterClass(var Pattern : PChar;
                            var I       : Integer;
-                           var S       : ShortString;
+                           var S       : string;
                            var AToken  : TStTokens) : Boolean;
 {-expand a character class starting at position I of Pattern into a string S}
 {return a token type (tknCharClass or tknNegCharClass)}
@@ -686,11 +687,11 @@ begin
   Result^.Token         := aNode^.Token;
   Result^.OneChar       := aNode^.OneChar;
   Result^.NextOK        := aNode^.NextOK;
-  if (aNode^.StrPtr <> nil) then begin                                 
-    New(Result^.StrPtr);                                               
-    Result^.StrPtr^     := aNode^.StrPtr^;                             
-  end else                                                             
-    Result^.StrPtr      := nil;                                        
+  if (aNode^.StrPtr <> nil) then begin
+    New(Result^.StrPtr);
+    Result^.StrPtr^     := aNode^.StrPtr^;
+  end else
+    Result^.StrPtr      := nil;
 
   {deep clone the nested node}
   if (aNode^.NestedPattern <> nil) then
@@ -731,11 +732,11 @@ begin
   Result^.Token         := aNode^.Token;
   Result^.OneChar       := aNode^.OneChar;
   Result^.NextOK        := aNode^.NextOK;
-  if (aNode^.StrPtr <> nil) then begin                                 
-    New(Result^.StrPtr);                                               
-    Result^.StrPtr^     := aNode^.StrPtr^;                             
-  end else                                                             
-    Result^.StrPtr      := nil;                                        
+  if (aNode^.StrPtr <> nil) then begin
+    New(Result^.StrPtr);
+    Result^.StrPtr^     := aNode^.StrPtr^;
+  end else
+    Result^.StrPtr      := nil;
 
   {recursively deepclone the next and nested nodes}
   if (aNode^.NextPattern <> nil) then
@@ -843,8 +844,8 @@ begin
 end;
 
 
-function TStStreamRegEx.AppendS(Dest, S1, S2 : PAnsiChar;
-                                Count : Cardinal) : PAnsiChar;
+function TStStreamRegEx.AppendS(Dest, S1, S2 : PChar;
+                                Count : Cardinal) : PChar;
 var
   Remaining : Cardinal;
   I         : Cardinal;
@@ -854,8 +855,8 @@ begin
   Remaining := MaxLineLength - I;
   if (Remaining < StrLen(S2)) then
     Count := Remaining;
-  Move(S1[0], Dest[0], I);
-  Move(S2[0], Dest[I], Count);
+  Move(S1[0], Dest[0], I * SizeOf(Char));
+  Move(S2[0], Dest[I], Count * SizeOf(Char));
   I := I + Count;
   Dest[I] := #0;
 end;
@@ -924,7 +925,7 @@ end;
 
 
 
-function TStStreamRegEx.BuildPatternStr(var PStr  : PAnsiChar;
+function TStStreamRegEx.BuildPatternStr(var PStr  : PChar;
                                   var Len   : Integer;
                                       SL    : TStringList) : Boolean;
 var
@@ -940,11 +941,11 @@ begin
   else begin
     if Assigned(PStr) then
       FreeMem(PStr, StrLen(PStr)+1);
-    GetMem(PStr, Len+1);
+    GetMem(PStr, (Len+1) * SizeOf(Char));
     PStr[Len] := EndStr;
     J := 0;
     for I := 0 to pred(SL.Count) do begin
-      Move(SL[I][1], PStr[J], Length(TrimL(SL[I])));
+      Move(SL[I][1], PStr[J], Length(TrimL(SL[I])) * SizeOf(Char));
       Inc(J, Length(TrimL(SL[I])));
     end;
     Result := True;
@@ -955,15 +956,15 @@ end;
 function TStStreamRegEx.CheckString(const S : string;
                                     var REPosition : TMatchPosition) : Boolean;
 var
-  Tmp : PAnsiChar;
+  Tmp : PChar;
   I   : integer;
   Len : integer;
   OK  : Boolean;
 begin
   I := Length(S);
-  GetMem(Tmp, I+3);
+  GetMem(Tmp, (I+3) * SizeOf(Char));
   try
-    Move(S[1], Tmp[0], I);
+    Move(S[1], Tmp[0], I * SizeOf(Char));
     Tmp[I]   := #13;
     Tmp[I+1] := #10;
     Tmp[I+2] := EndStr;
@@ -1013,7 +1014,7 @@ end;
 function TStStreamRegEx.ReplaceString(var S : string;
                                       var REPosition : TMatchPosition) : Boolean;
 var
-  Tmp : PAnsiChar;
+  Tmp : PChar;
   I   : integer;
   Len : integer;
   OK  : Boolean;
@@ -1023,13 +1024,13 @@ var
                                  LineNum    : integer;
                              var REPosition : TMatchPosition) : Boolean;
       var
-        TmpBuf : PAnsiChar;
-        ABuf   : PAnsiChar;
+        TmpBuf : PChar;
+        ABuf   : PChar;
         L      : Integer;
       begin
         L := Length(S)+1;
-        GetMem(TmpBuf, MaxLineLength+1);
-        GetMem(ABuf, L);
+        GetMem(TmpBuf, (MaxLineLength+1) * SizeOf(Char));
+        GetMem(ABuf, L * SizeOf(Char));
         try
           StrPCopy(ABuf, S);
           if (FSelAvoidPatPtr <> nil) then begin
@@ -1062,9 +1063,9 @@ var
 
 begin
   I := Length(S);
-  GetMem(Tmp, I+3);
+  GetMem(Tmp, (I+3) * SizeOf(Char));
   try
-    Move(S[1], Tmp[0], I);
+    Move(S[1], Tmp[0], I * SizeOf(Char));
     Tmp[I]   := #13;
     Tmp[I+1] := #10;
     Tmp[I+2] := EndStr;
@@ -1110,8 +1111,8 @@ begin
     FInLineCount   := 0;
     FLinesPerSec   := 0;
 
-    GetMem(FInLineBuf, MaxLineLength+3);
-    GetMem(FOutLineBuf, MaxLineLength+3);
+    GetMem(FInLineBuf, (MaxLineLength+3) * SizeOf(Char));
+    GetMem(FOutLineBuf, (MaxLineLength+3) * SizeOf(Char));
     try
       REPosition.LineNum := 1;
       if ((FSelAvoidPatPtr <> nil) or (FMatchPatPtr <> nil)) and
@@ -1252,14 +1253,14 @@ begin
   FInTextStream := nil;
   FOutTextStream := nil;
   try
-    FInTextStream := TStAnsiTextStream.Create(FInputStream);
+    FInTextStream := TStTextStream.Create(FInputStream);
     FInTextStream.LineTermChar := FInLineTermChar;
     FInTextStream.LineTerminator := FInLineTerminator;
     FInTextStream.FixedLineLength := FInLineLength;
     FInFileSize := FInTextStream.Size;
 
     if not (ooCountOnly in OutputOptions) then begin
-      FOutTextStream := TStAnsiTextStream.Create(FOutputStream);
+      FOutTextStream := TStTextStream.Create(FOutputStream);
       FOutTextStream.LineTermChar := FOutLineTermChar;
       FOutTextStream.LineTerminator := FOutLineTerminator;
       FOutTextStream.FixedLineLength := FInLineLength;
@@ -1277,8 +1278,8 @@ begin
     FInLineBuf := nil;
     FOutLineBuf := nil;
     try
-      GetMem(FInLineBuf, MaxLineLength+3);
-      GetMem(FOutLineBuf, MaxLineLength+3);
+      GetMem(FInLineBuf, (MaxLineLength+3) * SizeOf(Char));
+      GetMem(FOutLineBuf, (MaxLineLength+3) * SizeOf(Char));
 
       LineNum := 1;
       ATime := Now;
@@ -1331,7 +1332,7 @@ end;
 procedure TStStreamRegEx.AddTokenToPattern(var PatRec : PStPatRecord;
                                            LastPatRec : PStPatRecord;
                                                 Token : TStTokens;
-                                                    S : ShortString);
+                                                    S : string);
 {-add a token record to the pattern list}
 {-S contains a literal character or an expanded character class}
 
@@ -1370,9 +1371,9 @@ begin
 end;
 
 
-function TStStreamRegEx.MakePattern(var Pattern : PAnsiChar;
+function TStStreamRegEx.MakePattern(var Pattern : PChar;
                                         Start   : Integer;
-                                        Delim   : AnsiChar;
+                                        Delim   : Char;
                                     var TagOn   : Boolean;
                                     var PatList : PStPatRecord) : Integer;
 var
@@ -1382,8 +1383,8 @@ var
   TempPatRec,
   PatRec         : PStPatRecord;
   Done           : Boolean;
-  AChar          : AnsiChar;
-  TmpStr         : ShortString;
+  AChar          : Char;
+  TmpStr         : string;
   AToken         : TStTokens;
   GroupStartPos,
   GroupEndPos    : integer;
@@ -1522,7 +1523,7 @@ begin
 end;
 
 
-function TStStreamRegEx.GetPattern(var Pattern : PAnsiChar;
+function TStStreamRegEx.GetPattern(var Pattern : PChar;
                                    var PatList : PStPatRecord) : Boolean;
 {-convert a Pattern PAnsiChar into a pattern list, pointed to by patlist}
 {-return true if successful}
@@ -1541,7 +1542,7 @@ end;
 procedure TStStreamRegEx.AddTokenToReplace(var PatRec : PStPatRecord;
                                            LastPatRec : PStPatRecord;
                                                 Token : TStTokens;
-                                                S     : ShortString);
+                                                S     : string);
 {-add a token record to the pattern list}
 {S contains a literal character or an expanded character class}
 begin
@@ -1557,9 +1558,9 @@ begin
 end;
 
 
-function TStStreamRegEx.MakeReplacePattern(Pattern     : PAnsiChar;
+function TStStreamRegEx.MakeReplacePattern(Pattern     : PChar;
                                            Start       : Integer;
-                                           Delim       : AnsiChar;
+                                           Delim       : Char;
                                            var PatList : PStPatRecord) : Integer;
 {-make a pattern list from arg[i], starting at start, ending at delim}
 {return 0 is error, last char position in arg if OK}
@@ -1568,7 +1569,7 @@ var
   PatRec,
   LastPatRec : PStPatRecord;
   Done       : Boolean;
-  AChar      : AnsiChar;
+  AChar      : Char;
 
 begin
   PatList := FNodes.AllocNode;
@@ -1621,14 +1622,14 @@ begin
 end;
 
 
-function TStStreamRegEx.GetReplace(Pattern     : PAnsiChar;
+function TStStreamRegEx.GetReplace(Pattern     : PChar;
                                    var PatList : PStPatRecord) : Boolean;
 begin
   Result := (MakeReplacePattern(Pattern, 0, EndStr, PatList) > 0);
 end;
 
 
-function TStStreamRegEx.MatchOnePatternElement(var Buf    : PAnsiChar;
+function TStStreamRegEx.MatchOnePatternElement(var Buf    : PChar;
                                                var I      : Integer;
                                                var TagOn  : Boolean;
                                                var TagNum : Integer;
@@ -1639,7 +1640,7 @@ var
   AToken   : TStTokens;
   PatPos   : Integer;
   K        : Cardinal;
-  C        : AnsiChar;
+  C        : Char;
 begin
   Advance := -1;
   AToken := PatPtr^.Token;
@@ -1705,7 +1706,7 @@ begin
 end;
 
 
-function TStStreamRegEx.SearchMatchPattern(var Buf    : PAnsiChar;
+function TStStreamRegEx.SearchMatchPattern(var Buf    : PChar;
                                                OffSet : Integer;
                                            var TagOn  : Boolean;
                                            var TagNum : Integer;
@@ -1763,7 +1764,7 @@ begin
         OffSet := -1;
         Done := True;
       end;
-    end else begin 
+    end else begin
       {skip over alternates if we matched already}
       while (PatRec^.NextOK) and (PatRec^.NextPattern <> nil) do
         PatRec := PatRec^.NextPattern;
@@ -1775,7 +1776,7 @@ begin
 end;
 
 
-function TStStreamRegEx.FindMatch(var Buf        : PAnsiChar;
+function TStStreamRegEx.FindMatch(var Buf        : PChar;
                                       PatPtr     : PStPatRecord;
                                   var REPosition : TMatchPosition) : Boolean;
 var
@@ -1805,34 +1806,34 @@ end;
 
 
 
-procedure TStStreamRegEx.InsertLineNumber(Dest    : PAnsiChar;
-                                    const S : PAnsiChar;
+procedure TStStreamRegEx.InsertLineNumber(Dest    : PChar;
+                                    const S : PChar;
                                     LineNum : Integer);
 var
   Count : Cardinal;
-  SI    : string[8];
+  SI    : string;
 begin
   Dest[0] := #0;
   Count := StrLen(S);
   if (Count > MaxLineLength - 8) then
     Count := MaxLineLength - 8;
   SI := LeftPadS(IntToStr(LineNum), 6) + '  ';
-  Move(SI[1], Dest[0], 8);
-  Move(S^, Dest[8], Count);
+  Move(SI[1], Dest[0], 8 * SizeOf(Char));
+  Move(S^, Dest[8], Count * SizeOf(Char));
   Dest[Count+8] := #0;
 end;
 
 
 
-function TStStreamRegEx.ProcessLine(    Buf       : PAnsiChar;
+function TStStreamRegEx.ProcessLine(    Buf       : PChar;
                                         Len       : integer;
                                         LineNum   : integer;
                                         CheckOnly : Boolean;
                                     var REPosition: TMatchPosition) : Boolean;
 var
-  Tmp : PAnsiChar;
+  Tmp : PChar;
 begin
-  GetMem(Tmp, MaxLineLength+1);
+  GetMem(Tmp, (MaxLineLength+1) * SizeOf(Char));
   try
     if (FSelAvoidPatPtr <> nil) then begin
       if (not Avoid) then
@@ -1951,7 +1952,7 @@ begin
 end;
 
 
-function TStStreamRegEx.SubLineMatchOne(Buf        : PAnsiChar;
+function TStStreamRegEx.SubLineMatchOne(Buf        : PChar;
                                         var Flags  : TStFlag;
                                         var TagOn  : Boolean;
                                         var I      : Integer;
@@ -1962,8 +1963,8 @@ var
   lToken   : TStTokens;
   PatPos   : Integer;
   K        : Cardinal;
-  C        : AnsiChar;
-begin                       
+  C        : Char;
+begin
   Advance := -1;
   lToken := PatPtr^.Token;
   if FIgnoreCase then
@@ -2041,7 +2042,7 @@ end;
 
 
 
-function TStStreamRegEx.SubLineMatchPattern(Buf        : PAnsiChar;
+function TStStreamRegEx.SubLineMatchPattern(Buf        : PChar;
                                             var Flags  : TStFlag;
                                             var TagOn  : Boolean;
                                             var TagNum : Integer;
@@ -2056,8 +2057,8 @@ var
   PatRec   : PStPatRecord;
   Done     : Boolean;
   AToken   : TStTokens;
-  OldTagOn : boolean;                                          
-  OldTagNum: integer;                                          
+  OldTagOn : boolean;
+  OldTagNum: integer;
 begin
   Done := False;
   PatRec := PatPtr;
@@ -2071,8 +2072,8 @@ begin
       {match as many as possible}
       while not(Done) and (Buf[I] <> EndStr) do begin
 {        if not(SubLineMatchOne(Buf, Flags, TagOn,
-                                LocTag, I, PatRec)) then}              
-        if not(SubLineMatchOne(Buf, Flags, TagOn,                      
+                                LocTag, I, PatRec)) then}
+        if not(SubLineMatchOne(Buf, Flags, TagOn,
                                I, LocTag, PatRec)) then
           Done := True;
       end;
@@ -2082,8 +2083,8 @@ begin
       Done := False;
       PatPos := -1;
       while not(Done) and (I >= OffSet) do begin
-        OldTagOn := TagOn;                                     
-        OldTagNum := LocTag;                                   
+        OldTagOn := TagOn;
+        OldTagNum := LocTag;
         PatPos := SubLineMatchPattern(Buf, Flags, TagOn,
                                       LocTag, I, PatRec^.NextPattern);
         if (PatPos > -1) then
@@ -2125,7 +2126,7 @@ begin
 end;
 
 
-function TStStreamRegEx.SubLineFindTag(Buf         : PAnsiChar;
+function TStStreamRegEx.SubLineFindTag(Buf         : PChar;
                                        I           : Integer;
                                        IEnd        : Integer;
                                        TagNum      : Integer;
@@ -2149,8 +2150,8 @@ end;  {findtag}
 
 
 
-procedure TStStreamRegEx.SubLineWrite(Buf       : PAnsiChar;
-                                      S         : PAnsiChar;
+procedure TStStreamRegEx.SubLineWrite(Buf       : PChar;
+                                      S         : PChar;
                                       RepRec    : PStPatRecord;
                                       I,
                                       IEnd      : Integer;
@@ -2193,7 +2194,7 @@ end;
 
 
 
-procedure TStStreamRegEx.SubLine(Buf : PAnsiChar);
+procedure TStStreamRegEx.SubLine(Buf : PChar);
 var
   I,
   M,
@@ -2204,16 +2205,16 @@ var
   Flags      : TStFlag;
   TagOn,
   DidReplace : Boolean;
-  ALine      : PAnsiChar;
+  ALine      : PChar;
 begin
   DidReplace := False;
   LastM  := -1;
   I := 0;
 
-  GetMem(ALine, MaxLineLength+1);
+  GetMem(ALine, (MaxLineLength+1) * SizeOf(Char));
   try
     FOutLineBuf[0] := #0;
-    FillChar(ALine^, MaxLineLength+1, #0);
+    FillChar(ALine^, (MaxLineLength+1) * SizeOf(Char), #0);
     while (Buf[I] <> EndStr) do begin
       TagNum := 0;
       TagOn := False;

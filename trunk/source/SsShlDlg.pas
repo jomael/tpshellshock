@@ -20,6 +20,7 @@
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
+ *   Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -68,7 +69,7 @@ uses
   Graphics,
   SsBase,
   {$IFDEF VERSION6} {$WARN UNIT_PLATFORM OFF} {$ENDIF}
-  FileCtrl,
+  {$IFNDEF VERSION2010} FileCtrl, {$ENDIF}
   {$IFDEF VERSION6} {$WARN UNIT_PLATFORM ON} {$ENDIF}
   SsConst;
 

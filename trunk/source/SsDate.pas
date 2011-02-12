@@ -19,7 +19,7 @@
  * Portions created by the Initial Developer are Copyright (C) 1996-2002
  * the Initial Developer. All Rights Reserved.
  *
- * Contributor(s):
+ * Contributor(s):  Sebastian Zierer (Unicode)
  *
  * ***** END LICENSE BLOCK ***** *)
 
@@ -244,7 +244,7 @@ const
 
 type
 {  DateString = string[DateLen];}
-  SString = string[255];
+  SString = string;
 
 function IsLeapYear(Year : Integer) : Boolean;
   {-Return True if Year is a leap year}
@@ -340,22 +340,22 @@ asm
 end;
 
 
-function ResolveEpoch(Year, Epoch : Integer) : Integer;              
-  {-Convert 2-digit year to 4-digit year according to Epoch}         
-var                                                                  
-  EpochYear,                                                         
-  EpochCent : Integer;                                               
-begin                                                                
-  if Word(Year) < 100 then begin                                     
-    EpochYear := Epoch mod 100;                                      
+function ResolveEpoch(Year, Epoch : Integer) : Integer;
+  {-Convert 2-digit year to 4-digit year according to Epoch}
+var
+  EpochYear,
+  EpochCent : Integer;
+begin
+  if Word(Year) < 100 then begin
+    EpochYear := Epoch mod 100;
     EpochCent := (Epoch div 100) * 100;
-    if (Year < EpochYear) then                                       
-      Inc(Year,EpochCent+100)                                        
-    else                                                             
+    if (Year < EpochYear) then
+      Inc(Year,EpochCent+100)
+    else
       Inc(Year,EpochCent);
-  end;                                                               
+  end;
   Result := Year;
-end;                                                                 
+end;
 
 function CurrentDate : TStDate;
   {-Returns today's date as a julian}
@@ -369,7 +369,7 @@ end;
 function DaysInMonth(Month : integer; Year, Epoch : Integer) : Integer;
     {-Return the number of days in the specified month of a given year}
 begin
-  Year := ResolveEpoch(Year, Epoch);                                 
+  Year := ResolveEpoch(Year, Epoch);
 
   if (Year < MinYear) OR (Year > MaxYear) then
   begin
@@ -392,7 +392,7 @@ end;
 function ValidDate(Day, Month, Year, Epoch : Integer) : Boolean;
   {-Verify that day, month, year is a valid date}
 begin
-  Year := ResolveEpoch(Year, Epoch);                                 
+  Year := ResolveEpoch(Year, Epoch);
 
   if (Day < 1) or (Year < MinYear) or (Year > MaxYear) then
     Result := False
@@ -653,22 +653,22 @@ begin
   StDateToDMY(Date2, Day2, Month2, Year2);
 
   {days first}
-  if (Day1 = DaysInMonth(Month1, Year1, 0)) then begin               
-    Day1 := 0;                                                       
-    Inc(Month1);   {OK if Month1 > 12}                               
-  end;                                                               
-  if (Day2 = DaysInMonth(Month2, Year2, 0)) then begin               
-    Day2 := 0;                                                       
-    Inc(Month2);   {OK if Month2 > 12}                               
-  end;                                                               
+  if (Day1 = DaysInMonth(Month1, Year1, 0)) then begin
+    Day1 := 0;
+    Inc(Month1);   {OK if Month1 > 12}
+  end;
+  if (Day2 = DaysInMonth(Month2, Year2, 0)) then begin
+    Day2 := 0;
+    Inc(Month2);   {OK if Month2 > 12}
+  end;
   if (Day2 < Day1) then begin
     Dec(Month2);
     if Month2 = 0 then begin
       Month2 := 12;
       Dec(Year2);
     end;
-    Days := Day2 + DaysInMonth(Month1, Year1, 0) - Day1;             
-  end else                                                           
+    Days := Day2 + DaysInMonth(Month1, Year1, 0) - Day1;
+  end else
   Days := Day2-Day1;
 
   {now months and years}
