@@ -1,0 +1,82 @@
+(* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is TurboPower ShellShock
+ *
+ * The Initial Developer of the Original Code is
+ * TurboPower Software
+ *
+ * Portions created by the Initial Developer are Copyright (C) 1996-2002
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * ***** END LICENSE BLOCK ***** *)
+
+{*********************************************************}
+{* ShellShock: K102_R50.dpk 1.02                         *}
+{*********************************************************}
+
+package K102_R50;
+
+{$R *.RES}
+{$ALIGN ON}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'TurboPower ShellShock 1.02 Runtime package - VCL50'}
+{$RUNONLY}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl50,
+  Vclx50;
+
+contains
+  StTrIcon in '..\source\StTrIcon.pas',
+  SsBase in '..\source\SsBase.pas',
+  SsConst in '..\source\SsConst.pas',
+  SsDate in '..\source\SsDate.pas',
+  SsDict in '..\source\SsDict.pas',
+  SsDQue in '..\source\SsDQue.pas',
+  SsList in '..\source\SsList.pas',
+  SsRegEx in '..\source\SsRegEx.pas',
+  SsStrms in '..\source\SsStrms.pas',
+  StBrowsr in '..\source\Stbrowsr.pas',
+  StDrop in '..\source\StDrop.pas',
+  StFileOp in '..\source\StFileOp.pas',
+  StFormat in '..\source\StFormat.pas',
+  StShlCtl in '..\source\StShlCtl.pas',
+  StShlDD in '..\source\StShlDD.pas',
+  StShrtCt in '..\source\StSHRTCT.PAS',
+  SsShlDlg in '..\source\SsShlDlg.pas',
+  StAbout in '..\source\StAbout.pas';
+
+end.
