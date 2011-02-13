@@ -30,7 +30,7 @@ interface
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   ComCtrls, StShlCtl, ExtCtrls, StdCtrls, SsBase, StFileOp, Menus,
-  ToolWin, {$IFDEF VERSION5} ImgList,{$ENDIF} Clipbrd;
+  ToolWin, {$IFDEF VERSION5} ImgList,{$ENDIF} Clipbrd, ImgList;
 
 type
   TForm1 = class(TForm)
