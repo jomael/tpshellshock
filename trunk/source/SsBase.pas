@@ -43,12 +43,8 @@ uses
   SsConst,
   ShellApi,
   ShlObj,
-  {$IFDEF VERSION3}
   ActiveX,
   ComObj,
-  {$ELSE}
-  Ole2,
-  {$ENDIF}
 
   {$IFDEF VERSION6} {$WARN UNIT_PLATFORM OFF} {$ENDIF}
   {$IFNDEF VERSION2010} FileCtrl, {$ENDIF}
@@ -174,6 +170,7 @@ type
   end;
 
 {$Z-}
+{$IFNDEF VERSION2009}
   { Undocumented PIDL functions that we import. }
   TStILClone = function(Pidl : PItemIDList) : PItemIDList; stdcall;
   TStILCloneFirst = function(Pidl : PItemIDList) : PItemIDList; stdcall;
@@ -190,6 +187,7 @@ type
     var Items : TStNotifyRegister) : THandle; stdcall;
   TStSHChangeNotifyDeregister = function(
     HNotificationObject : THandle) : Boolean;  stdcall;
+{$ENDIF}
 
   {-ShellShock exception class tree}
   ESsException = class(Exception)     {ancestor to all ShellShock exceptions}
@@ -536,8 +534,9 @@ procedure RaiseStWin32Error(ExceptionClass : ESsExceptionClass; Code : LongInt);
 procedure RaiseStWin32ErrorEx(ExceptionClass : ESsExceptionClass; Code : LongInt; Info : string);
 
 var
-  Shell32Inst   : THandle;
   PidlFormat    : Word;
+{$IFNDEF VERSION2009}
+  Shell32Inst   : THandle;
   ILClone       : TStILClone;
   ILCloneFirst  : TStILCloneFirst;
   ILCombine     : TStILCombine;
@@ -549,13 +548,16 @@ var
   ILFree        : TStILFree;
   SHChangeNotifyRegister      : TStSHChangeNotifyRegister;
   SHChangeNotifyDeregister    : TStSHChangeNotifyDeregister;
+{$ENDIF}
 
   function GetSpecialFolderPath(Handle : TStHwnd; Folder : TStSpecialRootFolder) : string;
   procedure GetSpecialFolderFiles(Handle : TStHwnd;
                                   Folder : TStSpecialRootFolder;
                                   Files : TStrings);
   function GetParentPidl(Pidl: PItemIDList) : PItemIDList;
+{$IFNDEF VERSION2009}
   procedure LoadILFunctions;
+{$ENDIF}
 
 {String routines}
 function LeftPadChS(const S : string; C : Char; Len : Cardinal) : string;
@@ -1218,23 +1220,25 @@ begin
 end;
 *)
 
+{$IFNDEF VERSION2009}
 procedure LoadILFunctions;
 begin
   Shell32Inst := LoadLibrary('shell32.dll');
   if Shell32Inst <> 0 then begin
-    @ILClone        := GetProcAddress(Shell32Inst, PChar(18));
-    @ILCloneFirst   := GetProcAddress(Shell32Inst, PChar(19));
-    @ILCombine      := GetProcAddress(Shell32Inst, PChar(25));
-    @ILGetNext      := GetProcAddress(Shell32Inst, PChar(153));
-    @ILFindLastID   := GetProcAddress(Shell32Inst, PChar(16));
-    @ILIsEqual      := GetProcAddress(Shell32Inst, PChar(21));
-    @ILRemoveLastID := GetProcAddress(Shell32Inst, PChar(17));
-    @ILGetSize      := GetProcAddress(Shell32Inst, PChar(152));
-    @ILFree         := GetProcAddress(Shell32Inst, PChar(155));
-    @SHChangeNotifyRegister   := GetProcAddress(Shell32Inst, PChar(2));
-    @SHChangeNotifyDeregister := GetProcAddress(Shell32Inst, PChar(4));
+    @ILClone        := GetProcAddress(Shell32Inst, PChar(18));           // Win2000
+    @ILCloneFirst   := GetProcAddress(Shell32Inst, PChar(19));           // Win2000
+    @ILCombine      := GetProcAddress(Shell32Inst, PChar(25));           // Win2000
+    @ILGetNext      := GetProcAddress(Shell32Inst, PChar(153));          // Win2000
+    @ILFindLastID   := GetProcAddress(Shell32Inst, PChar(16));           // Win2000
+    @ILIsEqual      := GetProcAddress(Shell32Inst, PChar(21));           // Win2000
+    @ILRemoveLastID := GetProcAddress(Shell32Inst, PChar(17));           // Win2000
+    @ILGetSize      := GetProcAddress(Shell32Inst, PChar(152));          // Win2000
+    @ILFree         := GetProcAddress(Shell32Inst, PChar(155));          // Win2000
+    @SHChangeNotifyRegister   := GetProcAddress(Shell32Inst, PChar(2));  // deprecated as of Vista
+    @SHChangeNotifyDeregister := GetProcAddress(Shell32Inst, PChar(4));  // deprecated as of Vista
   end;
 end;
+{$ENDIF}
 
 function GetParentPidl(Pidl: PItemIDList) : PItemIDList;
 var
@@ -1568,18 +1572,19 @@ begin
   Result := FProductMinorVersion;
 end;
 
-{$IFDEF VERSION3}
 initialization
   PidlFormat := RegisterClipboardFormat(CFSTR_SHELLIDLIST);
-  LoadILFunctions;
+  {$IFNDEF VERSION2009}
+  LoadILFunctions;  //SZ can be imported statically since Win2000; do not use LoadLibrary in initialization of a dll
+  {$ENDIF}
 
 finalization
+  {$IFNDEF VERSION2009}
   if Shell32Inst <> 0 then begin
     FreeLibrary(Shell32Inst);
     Shell32Inst := 0;
   end;
-{$ENDIF}
-
+  {$ENDIF}
 end.
 
 

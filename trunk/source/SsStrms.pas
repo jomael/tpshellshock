@@ -48,10 +48,10 @@ uses
 type
   TStMemSize = Integer;
 
-  {$IFNDEF VERSION3}
-  TStSetStreamSize = procedure(aStream  : TStream;
-                               aNewSize : longint) of object;
-  {$ENDIF}
+//  {$IFNDEF VERSION3}
+//  TStSetStreamSize = procedure(aStream  : TStream;
+//                               aNewSize : longint) of object;
+//  {$ENDIF}
 
   TStBufferedStream = class(TStream)
     private
@@ -63,10 +63,10 @@ type
       FDirty   : boolean;      {has data in buffer been changed?}
       FSize    : longint;      {size of underlying stream}
       FStream  : TStream;      {underlying stream}
-      {$IFNDEF VERSION3}
-      FOnSetStreamSize : TStSetStreamSize;
-                               {event to set underlying stream's size}
-      {$ENDIF}
+//      {$IFNDEF VERSION3}
+//      FOnSetStreamSize : TStSetStreamSize;
+//                               {event to set underlying stream's size}
+//      {$ENDIF}
     protected
       procedure bsSetStream(aValue : TStream);
 
@@ -77,9 +77,11 @@ type
       procedure bsReadFromStream;
       procedure bsWriteToStream;
 
-      {$IFDEF VERSION3}
+//      {$IFDEF VERSION3}
       procedure SetSize(const NewSize : Int64); override;
-      {$ENDIF}
+      procedure SetSize(NewSize: Integer); override;
+
+//      {$ENDIF}
     public
       constructor Create(aStream : TStream);
       constructor CreateEmpty;
@@ -88,17 +90,17 @@ type
       function Read(var Buffer; Count : longint) : longint; override;
       function Seek(Offset : longint; Origin : word) : longint; override;
       function Write(const Buffer; Count : longint) : longint; override;
-      {$IFNDEF VERSION3}
-      procedure SetSize(NewSize : longint);
-      {$ENDIF}
+//      {$IFNDEF VERSION3}
+//      procedure SetSize(NewSize : longint);
+//      {$ENDIF}
 
       property FastSize : longint read FSize;
       property Stream : TStream read FStream write bsSetStream;
 
-      {$IFNDEF VERSION3}
-      property OnSetStreamSize : TStSetStreamSize
-                 read FOnSetStreamSize write FOnSetStreamSize;
-      {$ENDIF}
+//      {$IFNDEF VERSION3}
+//      property OnSetStreamSize : TStSetStreamSize
+//                 read FOnSetStreamSize write FOnSetStreamSize;
+//      {$ENDIF}
    end;
 
 type
@@ -542,6 +544,11 @@ begin
   {set the position within the buffer}
   FBufPos := NewPos - FBufOfs;
   Result := NewPos;
+end;
+
+procedure TStBufferedStream.SetSize(NewSize: Integer);
+begin
+  SetSize(Int64(NewSize)); // call the 64 bit sibling
 end;
 
 {-----------------------------------------------------------------------------}
@@ -1616,7 +1623,7 @@ var
 
   function SwapWord(i: Char): Char;
   asm
-    ror ax, 8
+    ror ax, 8 // Result := (I shl 8) or (I shr 8)
   end;
 begin
   if FEncoding.IsSingleByte then

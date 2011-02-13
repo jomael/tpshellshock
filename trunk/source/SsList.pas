@@ -30,8 +30,6 @@
 {* ShellShock: Linked list class                         *}
 {*********************************************************}
 
-{$I SsDefine.inc}
-
 {Notes:
   Nodes stored in the list can be of type TStListNode or of a derived type.
   Pass the node class to the list constructor.
@@ -47,6 +45,8 @@
 unit SsList;
 
 interface
+
+{$I SsDefine.inc}
 
 uses
   Windows,

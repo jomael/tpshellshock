@@ -278,6 +278,18 @@ begin
 end;
 
 function AnsiHashStr(const S : string; Size : Integer) : Integer;
+{$IFDEF UNICODE}
+// Note: this generates a different has than the asm versions
+var
+  I: Integer;
+begin
+  Result := 0;
+  for I := 1 to Length(S) do
+    Result := ((Result shl 2) or (Result shr (SizeOf(Result) * 8 - 2))) xor  // ROL Result, 2
+      Ord(S[I]);
+  Result := Result mod Size; // return hash mod size
+end;
+{$ELSE}
 {$IFDEF HStrings}
   {32-bit huge string}
 register;
@@ -377,6 +389,7 @@ asm
   mov ax,dx        {return hash mod size}
 end;
 {$ENDIF}
+{$ENDIF UNICODE}
 
 function AnsiHashText(const S : string; Size : Integer) : Integer;
 begin
