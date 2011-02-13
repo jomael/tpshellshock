@@ -465,7 +465,7 @@ type
     FColText        : TStringList;
     FController     : TStCustomShellController;                        
     FDate           : TDateTime;
-    FSize           : Integer;
+    FSize           : Int64;
     FDisplayName    : string;
     FFileAttributes : DWORD;
     FFileAttributesStr : string;                                       
@@ -518,7 +518,7 @@ type
     function GetOpenIconIndex : Integer;                               
     function GetOverlayIconIndex : Integer;                            
     function GetLargeIcon : TIcon;
-    function GetSize : Integer;                                        
+    function GetSize : Int64;
     function GetSmallIcon : TIcon;
     function GetSmallOpenIcon : TIcon;
 
@@ -631,7 +631,7 @@ type
     property SimplePidl : PItemIDList
       read FSimplePidl;
 
-    property Size : Integer
+    property Size : Int64
       read GetSize;
 
     property SmallIcon : TIcon
@@ -1899,8 +1899,10 @@ var
   HFile       : THandle;                                               
 begin
   inherited Create(AOwner);
+  {$IFNDEF VERSION2009}
   if @ILClone = nil then
     LoadILFunctions;
+  {$ENDIF}
   FShellItems := TStShellItemList.Create;
 
   { Get the desktop folder. }
@@ -2829,13 +2831,13 @@ begin
     Res := SHGetDataFromIDList(FParentFolder, FSimplePidl,
       SHGDFIL_FINDDATA, @FD, SizeOf(TWin32FindData));
     if Res = 0 then begin
-      FSize := FD.nFileSizeLow;
+      FSize := FD.nFileSizeLow or Int64(FD.nFileSizeHigh) shl 32;
       { File size }
       if (FD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then begin
         FIsFileFolder := True;
         FSize := 0;
       end else
-        FSize := FD.nFileSizeLow;
+        FSize := FD.nFileSizeLow or Int64(FD.nFileSizeHigh) shl 32;
       { Modified }
       FileTimeToLocalFileTime(FD.ftLastWriteTime, FT);
       FileTimeToDosDateTime(FT,
@@ -3174,7 +3176,7 @@ begin
   Result := FOverlayIconIndex;
 end;
 
-function TStShellItem.GetSize : Integer;
+function TStShellItem.GetSize : Int64;
 begin
   if FSize = -1 then
     GetItemDetails;
@@ -3424,8 +3426,10 @@ var
   WinDir : array [0..MAX_PATH - 1] of Char;
 begin
   inherited Create(AOwner);
+  {$IFNDEF VERSION2009}
   if @ILClone = nil then
     LoadILFunctions;
+  {$ENDIF}
   FOptions           := [toExpandTopNode, toAllowRename,
                              toAllowDrag, toAllowDrop, toShellMenu];
   FRootFolder        := '';
@@ -4784,8 +4788,10 @@ var
   Str        : PChar;
 begin
   inherited Create(AOwner);
+  {$IFNDEF VERSION2009}
   if @ILClone = nil then
     LoadILFunctions;
+  {$ENDIF}
   FOptions         := [loAllowRename, loAllowDrag, loAllowDrop, loShellMenu];
   FCompressedColor := clBlue;
   FOptimization    := otEnumerate;
@@ -5315,7 +5321,10 @@ begin
   while Details.GetDetailsOf(nil, Col, SD) = 0 do begin
     case SD.str.uType of
       STRRET_CSTR : ColText := SD.str.cStr;
-      STRRET_WSTR : ColText := WideCharToString(SD.str.pOleStr);
+      STRRET_WSTR : begin
+                      ColText := WideCharToString(SD.str.pOleStr);
+                      CoTaskMemFree(SD.str.pOleStr); // SZ: pOleStr must be freed
+                    end;
       STRRET_OFFSET :
         begin
           PBuff := PChar(PAnsiChar(Pidl) + SD.str.uOffset);
@@ -5374,7 +5383,10 @@ var
         Continue;
       case SD.str.uType of
         STRRET_CSTR : ColText := SD.str.cStr;
-        STRRET_WSTR : ColText := WideCharToString(SD.str.pOleStr);
+        STRRET_WSTR : begin
+                        ColText := WideCharToString(SD.str.pOleStr);
+                        CoTaskMemFree(SD.str.pOleStr); // SZ: pOleStr must be freed
+                       end;
         STRRET_OFFSET :
           begin
             PBuff := PChar(PAnsiChar(SI.FSimplePidl) + SD.str.uOffset);
@@ -5397,7 +5409,7 @@ var
         { Size }
         SHGetDataFromIDList(SI.ParentFolder, SI.FSimplePidl,
           SHGDFIL_FINDDATA, @FD, SizeOf(TWin32FindData));
-        SI.FSize := FD.nFileSizeLow;
+        SI.FSize := FD.nFileSizeLow or Int64(FD.nFileSizeHigh) shl 32;
       end else if Columns.Items[I].Caption = stModifiedCol then begin
         FileTimeToLocalFileTime(FD.ftLastWriteTime, FT);
         FileTimeToDosDateTime(FT,
@@ -5421,7 +5433,7 @@ begin
     Res := SHGetDataFromIDList(SI.ParentFolder, SI.FSimplePidl,
       SHGDFIL_FINDDATA, @FD, SizeOf(TWin32FindData));
     if Res = 0 then begin
-      SI.FSize := FD.nFileSizeLow;
+      SI.FSize := FD.nFileSizeLow or Int64(FD.nFileSizeHigh) shl 32;
       if (FD.dwFileAttributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then begin
         SI.FIsFileFolder := True;
         SI.ColText.Add('');
@@ -5429,7 +5441,7 @@ begin
         SI.FSize := -1;
       end else begin
         { File size }
-        SI.FSize := FD.nFileSizeLow;
+        SI.FSize := FD.nFileSizeLow or Int64(FD.nFileSizeHigh) shl 32;
         Size := SI.FSize div 1024;
         if SI.FSize <> 0 then
           if Size = 0 then
@@ -5566,6 +5578,9 @@ var
   FileCount    : Integer;
   FolderCount  : Integer;
   R            : TRect;
+  {$IFDEF VERSION2009}
+  Shell32Inst:  THandle;
+  {$ENDIF}
 begin
   NMHdr := Message.NMHdr^;
   case NMHdr.code of
@@ -5618,6 +5633,10 @@ begin
           else
             BM.Height := GetSystemMetrics(SM_CYSMICON);
           BM.Width := BM.Height + 4 + BM.Canvas.TextWidth(S);
+          {$IFDEF VERSION2009}
+          Shell32Inst := GetModuleHandle('shell32.dll');
+          Assert(Shell32Inst <> 0); // this should never happen because we use ILClone
+          {$ENDIF}
           PageIcon := TIcon.Create;
           PageIcon.Handle := LoadImage(Shell32Inst,
             MAKEINTRESOURCE(133), IMAGE_ICON, BM.Height, BM.Height, 0);
@@ -7104,8 +7123,10 @@ var
   WinDir : array [0..MAX_PATH - 1] of Char;
 begin
   inherited Create(AOwner);
+  {$IFNDEF VERSION2009}
   if @ILClone = nil then
     LoadILFunctions;
+  {$ENDIF}
   FMaxNotifications := 0;
   FNotifyEvents := [neAssociationChange, neAttributesChange,
     neFileChange, neFileCreate, neFileDelete, neFileRename,
@@ -7649,8 +7670,10 @@ var
   WinDir : array [0..MAX_PATH - 1] of Char;
 begin
   inherited Create(AOwner);
+  {$IFNDEF VERSION2009}
   if @ILClone = nil then
     LoadILFunctions;
+  {$ENDIF}
   { Base class property defaults }
   Style := csOwnerDrawVariable;
 
@@ -8198,11 +8221,18 @@ begin
 end;
 
 
+var
+  NeedToUninitialize: Boolean;
+
 initialization
-  OleInitialize(nil);
+  if not IsLibrary then
+    NeedToUninitialize := Succeeded(OleInitialize(nil))
+  else
+    NeedToUninitialize := False;
 
 finalization
-  OleUninitialize;
+  if NeedToUninitialize then
+    OleUninitialize;
 
 end.
 
