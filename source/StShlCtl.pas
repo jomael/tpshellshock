@@ -1772,7 +1772,7 @@ begin
   DesktopFolder := nil;
 end;
 
-function TreeCompareFunc(lParam1, lParam2, lParamSort : Integer): Integer stdcall;
+function TreeCompareFunc(lParam1, lParam2, lParamSort : {$IFDEF VERSIONXE2}NativeInt{$ELSE}Integer{$ENDIF}): Integer stdcall;
 var
   Node1, Node2 : TTreeNode;
   SI1, SI2     : TStShellFolder;
@@ -3650,7 +3650,7 @@ begin
   if (SI <> nil) then begin
     Perform(WM_SETREDRAW, 0, 0);
     TopNode := TopItem;
-    CustomSort(TreeCompareFunc, Integer(Self));
+    CustomSort(TreeCompareFunc, {$IFDEF VERSIONXE2}NativeInt{$ELSE}Integer{$ENDIF}(Self));
     TopItem := TopNode;
     Perform(WM_SETREDRAW, 1, 0);
   end;
