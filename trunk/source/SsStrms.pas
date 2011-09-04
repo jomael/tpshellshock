@@ -214,6 +214,9 @@ type
     property LineTermChar : Char read FLineEndCh write atsSetLineEndCh;
     property LineTerminator : TStLineTerminator read FLineTerm write atsSetLineTerm;
   end experimental;
+  {$ELSE}
+  TStTextStream = class(TstAnsiTextStream)
+  end;
   {$ENDIF}
 
   TStMemoryMappedFile = class(TStream)
@@ -1622,9 +1625,15 @@ var
   tmp2: Char;
 
   function SwapWord(i: Char): Char;
-  asm
-    ror ax, 8 // Result := (I shl 8) or (I shr 8)
+  {$IFDEF PUREPASCAL}
+  begin
+    Result := (I shl 8) or (I shr 8)
   end;
+  {$ELSE}
+  asm
+    ror ax, 8
+  end;
+  {$ENDIF}
 begin
   if FEncoding.IsSingleByte then
   begin

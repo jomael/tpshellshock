@@ -144,8 +144,11 @@
   {$IF compilerversion >= 21}     // Delphi 2010 or higher
     {$DEFINE VERSION2010}
   {$IFEND}
-  {$IF compilerversion >= 22}
+  {$IF compilerversion >= 22}     // Delphi XE or higher
     {$DEFINE VERSIONXE}
+  {$IFEND}
+  {$IF compilerversion >= 23}     // Delphi XE2 or higher
+    {$DEFINE VERSIONXE2}
   {$IFEND}
 {$ENDIF}
 
