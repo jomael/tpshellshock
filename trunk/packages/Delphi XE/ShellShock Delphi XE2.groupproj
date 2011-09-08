@@ -1,0 +1,48 @@
+﻿	<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+		<PropertyGroup>
+			<ProjectGuid>{850D36E1-7F40-4A46-A1E0-22B4BC3F3A72}</ProjectGuid>
+		</PropertyGroup>
+		<ItemGroup>
+			<Projects Include="K102_R.dproj">
+				<Dependencies/>
+			</Projects>
+			<Projects Include="K102_D.dproj">
+				<Dependencies/>
+			</Projects>
+		</ItemGroup>
+		<ProjectExtensions>
+			<Borland.Personality>Default.Personality.12</Borland.Personality>
+			<Borland.ProjectType/>
+			<BorlandProject>
+				<Default.Personality/>
+			</BorlandProject>
+		</ProjectExtensions>
+		<Target Name="K102_R">
+			<MSBuild Projects="K102_R.dproj"/>
+		</Target>
+		<Target Name="K102_R:Clean">
+			<MSBuild Projects="K102_R.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="K102_R:Make">
+			<MSBuild Projects="K102_R.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="K102_D">
+			<MSBuild Projects="K102_D.dproj"/>
+		</Target>
+		<Target Name="K102_D:Clean">
+			<MSBuild Projects="K102_D.dproj" Targets="Clean"/>
+		</Target>
+		<Target Name="K102_D:Make">
+			<MSBuild Projects="K102_D.dproj" Targets="Make"/>
+		</Target>
+		<Target Name="Build">
+			<CallTarget Targets="K102_R;K102_D"/>
+		</Target>
+		<Target Name="Clean">
+			<CallTarget Targets="K102_R:Clean;K102_D:Clean"/>
+		</Target>
+		<Target Name="Make">
+			<CallTarget Targets="K102_R:Make;K102_D:Make"/>
+		</Target>
+		<Import Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')" Project="$(BDS)\Bin\CodeGear.Group.Targets"/>
+	</Project>
