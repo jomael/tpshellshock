@@ -24,9 +24,9 @@
  * ***** END LICENSE BLOCK ***** *)
 
 {*********************************************************}
-{* SysTools: K102_R70.DPK 1.02                           *}
+{* SysTools: K102_R.DPK 1.02                             *}
 {*********************************************************}
-{* SysTools: Delphi 7 Run-Time Package Source            *}
+{* SysTools: Delphi Run-Time Package Source              *}
 {*********************************************************}
 
 package K102_R;
@@ -54,7 +54,7 @@ package K102_R;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'TurboPower ShellShock 1.02 Runtime package'}
-{$LIBSUFFIX '150'}
+{$LIBSUFFIX '160'}
 {$RUNONLY}
 {$IMPLICITBUILD OFF}
 
