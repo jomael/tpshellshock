@@ -24,9 +24,9 @@
  * ***** END LICENSE BLOCK ***** *)
 
 {*********************************************************}
-{* ShellShock: K102_D70.DPK 1.02                         *}
+{* ShellShock: K102_D.DPK 1.02                           *}
 {*********************************************************}
-{* ShellShock: Delphi 7 Design-Time Package Source       *}
+{* ShellShock: Delphi Design-Time Package Source         *}
 {*********************************************************}
 
 package K102_D;
@@ -54,7 +54,7 @@ package K102_D;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'TurboPower ShellShock 1.02 Designtime package'}
-{$LIBSUFFIX '150'}
+{$LIBSUFFIX '160'}
 {$DESIGNONLY}
 {$IMPLICITBUILD OFF}
 
